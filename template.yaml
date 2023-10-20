@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'SAM Template for timeticker'
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+
+Resources:
+  TaskTickerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: taskticker/
+      Handler: main.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        mainApi:
+          Type: Api
+          Properties:
+            Path: /app
+            Method: post
+      Layers:
+      - Ref: libs
+  libs:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: requirement-layer
+      Description: Lambda layer with libs like pocket and datetime
+      ContentUri: ./libs
+
+Outputs:
+  ZoombaApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/app/
