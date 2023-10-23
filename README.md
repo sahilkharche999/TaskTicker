@@ -22,11 +22,9 @@ To build and deploy your application for the first time, run the following in yo
 ./deploy_test.sh
 ```
 
-This Lambda Function needs configuration for Zoom accounts, we need to save config is AWS Parameter Store, example format is given in `zoomba-config-example.json` file.
-
 You can find your API Gateway Endpoint URL in the output values displayed after deployment.
 
-The SAM CLI installs dependencies defined in `zoomba/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+The SAM CLI installs dependencies defined in `requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
 
 
 ## Fetch, tail, and filter Lambda function logs
@@ -36,7 +34,7 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-sam logs -n ZoombaFunction --stack-name zoomba-test --tail
+sam logs -n ZoombaFunction --stack-name tasktickr-test --tail
 ```
 
 ## Cleanup
