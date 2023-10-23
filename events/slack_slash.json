@@ -1,0 +1,53 @@
+{
+  "resource": "/",
+  "path": "/",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "application/json,*/*",
+    "Accept-Encoding": "gzip,deflate",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Host": "on12uyzhs8.execute-api.ap-south-1.amazonaws.com",
+    "User-Agent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+    "Via": "1.1 eb9a7c491927f70f3921f0803caae61c.cloudfront.net (CloudFront)",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https",
+    "X-Slack-Request-Timestamp": "1698044842",
+    "X-Slack-Signature": "v0=d1aa1ce2fa420ef20d0433c8893c1beda80e1ff95b28209a4a8444f744bb3341"
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "ntxto0",
+    "resourcePath": "/app/{id}",
+    "httpMethod": "POST",
+    "extendedRequestId": "NPlC1ErdBcwFfZQ=",
+    "requestTime": "23/Oct/2023:07:07:23 +0000",
+    "path": "/Prod/app/0",
+    "accountId": "789305755931",
+    "protocol": "HTTP/1.1",
+    "stage": "Prod",
+    "domainPrefix": "on12uyzhs8",
+    "requestTimeEpoch": 1698044843492,
+    "requestId": "09b0f395-de34-40d5-8958-2935ba2d88cd",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "54.161.135.190",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+      "user": null
+    },
+    "domainName": "on12uyzhs8.execute-api.ap-south-1.amazonaws.com",
+    "apiId": "on12uyzhs8"
+  },
+  "body": "token=LE6jSfmuPkNLM5nPKZtQeF3c&team_id=T04GLL1QQBY&team_domain=test-3wj2043&channel_id=C04H05X0HKN&channel_name=mpdm-mandeeplamba2731--dasarineelima9--zoomba-1&user_id=U04H5SWA20H&user_name=mandeeplamba2731&command=%2Fzoomba&text=&api_app_id=A04GTCXDVRQ&is_enterprise_install=false&response_url=https%3A%2F%2Fhooks.slack.com%2Fcommands%2FT04GLL1QQBY%2F6063890010487%2Fbb1upuGWQcZ040oDkgDPCzfI&trigger_id=6078424108658.4564681840406.76a6284489b057a72649a69d4e1a00e7",
+  "isBase64Encoded": false
+}
