@@ -1,0 +1,110 @@
+{
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Initial Setup",
+				"emoji": true
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "number_input",
+				"is_decimal_allowed": false,
+				"min_value": "1",
+				"action_id": "plain_text_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Enter the project ID from Log1 :",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
+			}
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select user",
+					"emoji": true
+				},
+				"action_id": "user_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Select person to assign:",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Select day frequency of updates"
+			},
+			"accessory": {
+				"type": "multi_static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select frequency",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Daily",
+							"emoji": true
+						},
+						"value": "daily"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Weekly",
+							"emoji": true
+						},
+						"value": "weekly"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Biweekly",
+							"emoji": true
+						},
+						"value": "biweekly"
+					}
+				]
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Submit",
+						"emoji": true
+					},
+					"style": "primary",
+					"value": "submit",
+					"action_id": "setup_submit"
+				}
+			]
+		}
+	]
+}

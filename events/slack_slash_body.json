@@ -1,0 +1,38 @@
+{
+  "token": [
+    "LE4jSfmuPkNLM5nPKZtQeF3c"
+  ],
+  "team_id": [
+    "T04GLL5QQBY"
+  ],
+  "team_domain": [
+    "test-3wj2223"
+  ],
+  "channel_id": [
+    "C04H05X0HKN"
+  ],
+  "channel_name": [
+    "mpdm"
+  ],
+  "user_id": [
+    "U04H5SWA21H"
+  ],
+  "user_name": [
+    "mandeep.l"
+  ],
+  "command": [
+    "/setup"
+  ],
+  "api_app_id": [
+    "A04GTCXDVRR"
+  ],
+  "is_enterprise_install": [
+    "false"
+  ],
+  "response_url": [
+    "https://hooks.slack.com/commands/T04GLL1QQBY/6063890010487/bb1upuGWWcZ040oDkgDPCzfI"
+  ],
+  "trigger_id": [
+    "6078424108658.4564681940406.86a6284489b057a72649a69d4e1a00e7"
+  ]
+}
