@@ -18,7 +18,7 @@ Resources:
       Runtime: python3.9
       Environment:
         Variables:
-          DB-TABLE-NAME: !Ref ProjectUpdateTable
+          DB_TABLE_NAME: !Ref ProjectUpdateTable
       Architectures:
         - x86_64
       Events:
