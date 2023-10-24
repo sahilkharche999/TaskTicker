@@ -7,12 +7,18 @@ Globals:
     MemorySize: 128
 
 Resources:
+  ProjectUpdateTable:
+    Type: AWS::Serverless::SimpleTable
+
   TaskTickerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: taskticker/
       Handler: main.lambda_handler
       Runtime: python3.9
+      Environment:
+        Variables:
+          DB-TABLE-NAME: !Ref ProjectUpdateTable
       Architectures:
         - x86_64
       Events:
