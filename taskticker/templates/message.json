@@ -4,7 +4,7 @@
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Initial Setup",
+				"text": "Enter the following details to Initialize TaskTicker bot ",
 				"emoji": true
 			}
 		},
@@ -45,8 +45,39 @@
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Select person to assign:",
+				"text": "Select the Slack handler of engineer :",
 				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
+			}
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select user",
+					"emoji": true
+				},
+				"action_id": "user_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Select the Slack handler of engineer's scrum :",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
 			}
 		},
 		{
@@ -59,35 +90,52 @@
 				"type": "multi_static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Select frequency",
+					"text": "Select days",
 					"emoji": true
 				},
 				"options": [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Daily",
+							"text": "MONDAY",
 							"emoji": true
 						},
-						"value": "daily"
+						"value": "MONDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Weekly",
+							"text": "TUESDAY",
 							"emoji": true
 						},
-						"value": "weekly"
+						"value": "TUESDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "Biweekly",
+							"text": "WEDNESDAY",
 							"emoji": true
 						},
-						"value": "biweekly"
+						"value": "WEDNESDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "THURSDAY",
+							"emoji": true
+						},
+						"value": "THURSDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "FRIDAY",
+							"emoji": true
+						},
+						"value": "FRIDAY"
 					}
-				]
+				],
+				"action_id": "multi_static_select-action"
 			}
 		},
 		{

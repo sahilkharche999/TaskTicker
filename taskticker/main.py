@@ -1,21 +1,24 @@
 import json
+
+# import boto3
 from helper import (
     is_slack_command,
     is_from_slack,
     parse_slack_event_body,
     get_payload,
     update_slack_message,
-    is_slack_submit
+    is_slack_submit,
+    save_to_db
 )
 from messager import get_message
 
 
 def lambda_handler(event: dict, context):
-    print(f'event: {event}')
 
     if is_from_slack(event):
         body = parse_slack_event_body(event)
         if is_slack_command(body):
+
             print("Slack Command:", body)
             return {
                 "statusCode": 200,
@@ -30,7 +33,7 @@ def lambda_handler(event: dict, context):
             response_url = payload.get('response_url')
 
             if is_slack_submit(payload):
-                print('submitting')
+                save_to_db(payload)
                 update_slack_message(response_url, {
                     'text': 'Success!!!'
                 })
