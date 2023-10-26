@@ -9,6 +9,10 @@ Globals:
 Resources:
   ProjectUpdateTable:
     Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: week_day
+        Type: String
 
   TaskTickerFunction:
     Type: AWS::Serverless::Function
@@ -40,4 +44,4 @@ Outputs:
   TaskTickerApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
     Value:
-      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/app/
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/app
