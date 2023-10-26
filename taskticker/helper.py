@@ -59,14 +59,12 @@ def retrieve_project_details(payload: dict) -> dict:
 def save_to_db(payload: dict):
     new_project = retrieve_project_details(payload)
     freq = new_project['frequency']
-    freq.append('FRIDAY')
     del new_project['frequency']
     db_data = {}
     for i in freq:
         request_item = {tbl_name: {'Keys': [{'week_day': {'S': i}}]}}
         batch_items = dynamodb.batch_get_item(
             RequestItems=request_item)
-        day = batch_items['Responses'][tbl_name][0]['week_day']['S']
         val = parse_db_response(batch_items['Responses'][tbl_name][0]['projects']['S'])
         val.append(new_project)
         db_data[i] = val
