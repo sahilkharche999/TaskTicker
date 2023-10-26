@@ -69,7 +69,7 @@ def save_to_db(payload: dict):
         day = batch_items['Responses'][tbl_name][0]['week_day']['S']
         val = parse_db_response(batch_items['Responses'][tbl_name][0]['projects']['S'])
         val.append(new_project)
-        db_data[day] = val
+        db_data[i] = val
     print(db_data)
     for k, v in db_data.items():
         update_item(key=k, val=v)
