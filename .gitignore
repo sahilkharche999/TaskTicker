@@ -1,1 +1,16 @@
 /libs/
+/taskticker/.env
+/.idea/.gitignore
+/.aws-sam/build/TaskTickerFunction/__init__.py
+/.idea/aws.xml
+/.aws-sam/build.toml
+/.aws-sam/build/TaskTickerFunction/helper.py
+/.aws-sam/build/TaskTickerFunction/main.py
+/.aws-sam/build/TaskTickerFunction/templates/message.json
+/.aws-sam/build/TaskTickerFunction/messager.py
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/TaskTicker.iml
+/.aws-sam/build/template.yaml
+/.idea/vcs.xml

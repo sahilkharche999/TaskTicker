@@ -1,13 +1,12 @@
 import ast
 import json
-import os
 from urllib.parse import parse_qs
 
 import boto3
 import requests
 
-# mndp_client = boto3.session.Session(profile_name='mndp', region_name='ap-south-1')
-tbl_name = os.environ.get('DB_TABLE_NAME')
+from config import DB_TABLE_NAME
+
 dynamodb = boto3.client('dynamodb')
 
 
@@ -68,7 +67,7 @@ def save_to_db(payload: dict):
     del new_project['frequency']
     db_data = {}
     for i in freq:
-        request_item = {tbl_name: {'Key': {'week_day': {'S': i}}, 'AttributesToGet': ['projects']}}
+        request_item = {DB_TABLE_NAME: {'Key': {'week_day': {'S': i}}, 'AttributesToGet': ['projects']}}
         create_item_if_not_exists(i)
         items = dynamodb.get_item(**request_item)
         val = parse_db_response(items)
@@ -90,7 +89,7 @@ def update_item(key, val):
     }
 
     update_params = {
-        'TableName': tbl_name,
+        'TableName': DB_TABLE_NAME,
         'Key': primary_key,
         'UpdateExpression': update_expression,
         'ExpressionAttributeValues': expression_attribute_values,
@@ -101,14 +100,14 @@ def update_item(key, val):
 
 
 def create_item_if_not_exists(item):
-    request_item = {'TableName': tbl_name,
+    request_item = {'TableName': DB_TABLE_NAME,
                     'Key':
                         {'week_day': {'S': item}
                          },
                     }
     res: dict = dynamodb.get_item(**request_item)
     if 'Item' not in res.keys():
-        dynamodb.put_item(**{'TableName': tbl_name,
+        dynamodb.put_item(**{'TableName': DB_TABLE_NAME,
                              'Item': {
                                  {'week_day': {'S': item}
                                   },
