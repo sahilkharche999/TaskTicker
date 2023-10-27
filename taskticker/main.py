@@ -1,7 +1,7 @@
 import json
 
-# import boto3
 from helper import (
+    is_from_aws_event_bridge,
     is_slack_command,
     is_from_slack,
     parse_slack_event_body,
@@ -11,9 +11,13 @@ from helper import (
     save_to_db
 )
 from messager import get_message
+from scheduler_worker import send_notifications
 
 
 def lambda_handler(event: dict, context):
+    if is_from_aws_event_bridge(event):
+        send_notifications()
+        return
 
     if is_from_slack(event):
         body = parse_slack_event_body(event)
@@ -43,3 +47,6 @@ def lambda_handler(event: dict, context):
                 return {
                     "statusCode": 204
                 }
+
+
+lambda_handler(event={'source': 'aws.events'}, context=None)
