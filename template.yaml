@@ -20,6 +20,9 @@ Resources:
       CodeUri: taskticker/
       Handler: main.lambda_handler
       Runtime: python3.9
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProjectUpdateTable
       Environment:
         Variables:
           DB_TABLE_NAME: !Ref ProjectUpdateTable
@@ -31,6 +34,12 @@ Resources:
           Properties:
             Path: /app
             Method: post
+        crudEvent:
+          Type: Schedule
+          Properties:
+            State: ENABLED
+            Schedule: 'cron(30 17 * * ? *)'
+            Description: Daily Update Schedule
       Layers:
       - Ref: libs
   libs:
