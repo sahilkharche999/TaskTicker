@@ -15,6 +15,10 @@ def is_from_slack(event: dict) -> bool:
     return event.get('headers', {}).get('User-Agent').startswith('Slackbot 1.0')
 
 
+def is_from_aws_event_bridge(event: dict) -> bool:
+    return event.get('source') == 'aws.events'
+
+
 def is_slack_command(body: dict) -> bool:
     return "command" in body.keys()
 
@@ -38,10 +42,12 @@ def update_slack_message(response_url: str, message: dict):
     )
 
 
-def parse_db_response(res: str) -> list:
-    to_list = ast.literal_eval(res)
-    if isinstance(to_list, list):
-        return to_list
+def parse_db_response(res: str):
+    obj = ast.literal_eval(res)
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        return obj
 
 
 def retrieve_project_details(payload: dict) -> dict:
@@ -62,10 +68,10 @@ def save_to_db(payload: dict):
     del new_project['frequency']
     db_data = {}
     for i in freq:
-        request_item = {tbl_name: {'Keys': [{'week_day': {'S': i}}]}}
-        batch_items = dynamodb.batch_get_item(
-            RequestItems=request_item)
-        val = parse_db_response(batch_items['Responses'][tbl_name][0]['projects']['S'])
+        request_item = {tbl_name: {'Key': {'week_day': {'S': i}}, 'AttributesToGet': ['projects']}}
+        create_item_if_not_exists(i)
+        items = dynamodb.get_item(**request_item)
+        val = parse_db_response(items)
         val.append(new_project)
         db_data[i] = val
     print(db_data)
@@ -92,3 +98,24 @@ def update_item(key, val):
 
     response = dynamodb.update_item(**update_params)
     print(response)
+
+
+def create_item_if_not_exists(item):
+    request_item = {'TableName': tbl_name,
+                    'Key':
+                        {'week_day': {'S': item}
+                         },
+                    }
+    res: dict = dynamodb.get_item(**request_item)
+    if 'Item' not in res.keys():
+        dynamodb.put_item(**{'TableName': tbl_name,
+                             'Item': {
+                                 {'week_day': {'S': item}
+                                  },
+                                 {'projects': {'S': '[]'}
+                                  }
+                             }
+                             }
+                          )
+    else:
+        print(res)
