@@ -1,10 +1,15 @@
-import os
+import ast
 import json
+import os
+from urllib.parse import parse_qs
+from datetime import date
+
 import boto3
 import requests
-from urllib.parse import parse_qs
-from config import DYNAMO_DB_Table
 
+from taskticker.config import LOG1_URL
+
+# mndp_client = boto3.session.Session(profile_name='mndp', region_name='ap-south-1')
 tbl_name = os.environ.get('DB_TABLE_NAME')
 dynamodb = boto3.client('dynamodb')
 
@@ -22,7 +27,7 @@ def is_slack_command(body: dict) -> bool:
 
 
 def is_slack_submit(slack_payload) -> bool:
-    return slack_payload.get('type') == 'view_submission'
+    return any(map(lambda x: x['action_id'] == 'setup_submit', slack_payload['actions']))
 
 
 def parse_slack_event_body(event: dict) -> dict:
@@ -33,38 +38,87 @@ def get_payload(body: dict):
     return json.loads(body.get('payload')[0])
 
 
-def update_slack_message(response_url: str, message: dict) -> None:
-    """
-    Update an existing Slack message
-    :param response_url: response url of the message
-    :param message: new message
-    """
-    requests.post(
+def update_slack_message(response_url: str, message: dict):
+    response = requests.post(
         url=response_url,
         json=message
     )
 
 
+def parse_db_response(res: str):
+    obj = ast.literal_eval(res)
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        return obj
+
+
 def retrieve_project_details(payload: dict) -> dict:
-    state_values = payload['view']['state']['values'].values()
-    values = {key: val for state in state_values for key, val in state.items()}
-    return {'project_id': values['project_id-action']['value'],
-            'engineer': values['user_select-action']['selected_user'],
-            'scrum': values['scrum_select-action']['selected_user'],
-            'channel': payload['view']['blocks'][1]['text']['text'],
-            'frequency': [x['value'] for x in values['frequency_select-action']['selected_options']]
-            }
+    data = {'project_id': payload['state']['values']['vG6RL']['plain_text_input-action']['value'],
+            'engineer': payload['state']['values']['pfx1W']['user_select-action']['selected_user'],
+            'scrum': payload['state']['values']['jdZjD']['user_select-action']['selected_user'],
+            'channel': payload['channel']['id']}
+    freq = []
+    for x in payload['state']['values']['9PkmD']['multi_static_select-action']['selected_options']:
+        freq.append(x['value'])
+    data['frequency'] = freq
+    return data
 
 
 def save_to_db(payload: dict):
     new_project = retrieve_project_details(payload)
-    days = new_project.pop('frequency')
+    freq = new_project['frequency']
+    del new_project['frequency']
     db_data = {}
-    for day in days:
-        existing_projects = DYNAMO_DB_Table.get_item(Key={'week_day': day}).get('Item', {}).get('projects', [])
-        existing_projects.append(new_project)
-        db_data[day] = existing_projects
+    for i in freq:
+        request_item = {tbl_name: {'Key': {'week_day': {'S': i}}, 'AttributesToGet': ['projects']}}
+        create_item_if_not_exists(i)
+        items = dynamodb.get_item(**request_item)
+        val = parse_db_response(items)
+        val.append(new_project)
+        db_data[i] = val
     print(db_data)
-    with DYNAMO_DB_Table.batch_writer() as batch:
-        for k, v in db_data.items():
-            batch.put_item(Item={'week_day': k, 'projects': v})
+    for k, v in db_data.items():
+        update_item(key=k, val=v)
+
+
+def update_item(key, val):
+    primary_key = {
+        'week_day': {'S': key}
+    }
+
+    update_expression = "SET projects = :value1"
+    expression_attribute_values = {
+        ':value1': {'S': str(val)}
+    }
+
+    update_params = {
+        'TableName': tbl_name,
+        'Key': primary_key,
+        'UpdateExpression': update_expression,
+        'ExpressionAttributeValues': expression_attribute_values,
+    }
+
+    response = dynamodb.update_item(**update_params)
+    print(response)
+
+
+def create_item_if_not_exists(item):
+    request_item = {'TableName': tbl_name,
+                    'Key':
+                        {'week_day': {'S': item}
+                         },
+                    }
+    res: dict = dynamodb.get_item(**request_item)
+    if 'Item' not in res.keys():
+        dynamodb.put_item(**{'TableName': tbl_name,
+                             'Item': {
+                                 {'week_day': {'S': item}
+                                  },
+                                 {'projects': {'S': '[]'}
+                                  }
+                             }
+                             }
+                          )
+    else:
+        print(res)
