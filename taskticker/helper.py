@@ -2,9 +2,12 @@ import ast
 import json
 import os
 from urllib.parse import parse_qs
+from datetime import date
 
 import boto3
 import requests
+
+from taskticker.config import LOG1_URL
 
 # mndp_client = boto3.session.Session(profile_name='mndp', region_name='ap-south-1')
 tbl_name = os.environ.get('DB_TABLE_NAME')
@@ -119,3 +122,35 @@ def create_item_if_not_exists(item):
                           )
     else:
         print(res)
+
+
+def post_updates_to_log1(
+        update: str,
+        sprint_start: date,
+        sprint_end: date,
+        update_type: str = "project"
+):
+    """
+    Post updates to log1
+    :param update: update text
+    :param sprint_start: sprint start date
+    :param sprint_end: sprint end date
+    :param update_type: type of update
+    :return: dict with status code and response body
+    """
+    headers = {
+        "Accept": "application/json",
+        "authorization": f"Token **********"
+    }
+    data = {
+        "update": "Project update bot test2",
+        "start": date.today().strftime("%Y-%m-%d"),
+        "end": date.today().strftime("%Y-%m-%d"),
+        "type": 'project'
+    }
+    response = requests.post(url=LOG1_URL, headers=headers, data=data)
+    return {
+        "statusCode": response.status_code,
+        "body": response.text,
+    }
+
