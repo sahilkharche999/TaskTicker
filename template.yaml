@@ -23,6 +23,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProjectUpdateTable
+        - SSMParameterReadPolicy:
+            ParameterName: taskticker-*
       Environment:
         Variables:
           DB_TABLE_NAME: !Ref ProjectUpdateTable

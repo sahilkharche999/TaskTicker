@@ -1,8 +1,16 @@
 import json
 
 
-def get_message() -> dict:
-    return json.load(open('templates/message.json'))
+def get_message(channel_id: str) -> dict:
+    message = json.load(open('templates/message.json'))
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
 
 
 def get_updates_reminder_message():

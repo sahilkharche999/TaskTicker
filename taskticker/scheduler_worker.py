@@ -1,38 +1,24 @@
-import datetime
-import os
-
-from slack_sdk import WebClient
+from datetime import date
 from slack_sdk.errors import SlackApiError
-
-from helper import dynamodb, parse_db_response, create_item_if_not_exists
 from messager import get_updates_reminder_message
-
-slack_client = WebClient(token=os.environ.get('BOT_TOKEN'))
-tbl_name = os.environ.get('DB_TABLE_NAME')
+from config import DYNAMO_DB_Table, SLACK_CLIENT
 
 
 def send_notifications():
-    today = datetime.date.today()
-    week_day = today.strftime('%A').upper()
-    create_item_if_not_exists(week_day)
-    response = dynamodb.get_item(
-        TableName=tbl_name,
+    week_day = date.today().strftime('%A').upper()
+    projects = DYNAMO_DB_Table.get_item(
         Key={
-            'week_day': {
-                'S': week_day
-            }
+            'week_day': week_day
         },
-        AttributesToGet=['projects']
-    )
-    projects_string = response['Item']['projects']['S']
-    if projects_string == '[]':
-        return
-    projects = parse_db_response(projects_string)
-    print(projects_string)
+        ProjectionExpression='projects'
+    ).get('Item', {}).get('projects', [])
     for project in projects:
         try:
             message = get_updates_reminder_message()
-            res = slack_client.chat_postMessage(channel=project['channel'], **message)
+            res = SLACK_CLIENT.chat_postEphemeral(
+                channel=project['channel'],
+                user=project['engineer'],
+                message=message)
             print(res)
         except SlackApiError as e:
             print(f'Error occurred in sending message : {e} --- channel id : {project["channel"]}')
