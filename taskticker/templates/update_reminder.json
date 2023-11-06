@@ -1,69 +1,42 @@
-{
-	"blocks": [
-		{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "Project Updates Reminder"
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "Please provide your project updates for today *<fakeLink.toEmployeeProfile.com|**USERNAME_HERE**>*"
-			}
-		},
-		{
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"multiline": true,
-				"action_id": "plain_text_input-action"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "Updates :",
-				"emoji": true
-			}
-		},
-		{
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"multiline": true,
-				"action_id": "plain_text_input-action"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "Blockers (if any) :",
-				"emoji": true
-			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"emoji": true,
-						"text": "Submit"
-					},
-					"style": "primary",
-					"value": "click_me_123"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"emoji": true,
-						"text": "Snooze"
-					},
-					"style": "danger",
-					"value": "click_me_123"
-				}
-			]
-		}
-	]
-}
+[
+  {
+    "type": "header",
+    "text": {
+      "type": "plain_text",
+      "text": "Project Updates Reminder"
+    }
+  },
+  {
+    "type": "section",
+    "text": {
+      "type": "plain_text",
+      "text": "Here to help you posting update for your project, when you want do it.",
+      "emoji": true
+    }
+  },
+  {
+    "type": "actions",
+    "elements": [
+      {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Now"
+        },
+        "style": "primary",
+        "action_id": "update_now_action"
+      },
+      {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Snooze"
+        },
+        "style": "danger",
+        "action_id": "snooze_action"
+      }
+    ]
+  }
+]

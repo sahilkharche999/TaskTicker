@@ -5,6 +5,7 @@
 		"text": "TaskTicker",
 		"emoji": true
 	},
+	"private_metadata": "project_setup_view",
 	"submit": {
 		"type": "plain_text",
 		"text": "Submit",

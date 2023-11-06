@@ -4,6 +4,8 @@ import json
 from slack_sdk import WebClient
 
 ssm_client = boto3.client('ssm')
+DEFAULT_SNOOZE_DELAY = 60*60
+
 
 def fetch_config() -> dict:
     try:

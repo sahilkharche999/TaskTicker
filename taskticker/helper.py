@@ -1,14 +1,8 @@
-import ast
 import json
-import boto3
 import requests
 from datetime import date
 from urllib.parse import parse_qs
-from config import DYNAMO_DB_Table
-
-from taskticker.config import LOG1_URL
-
-dynamodb = boto3.resource('dynamodb')
+from config import DYNAMO_DB_Table, LOG1_URL
 
 
 def is_from_slack(event: dict) -> bool:
@@ -25,6 +19,17 @@ def is_slack_command(body: dict) -> bool:
 
 def is_slack_submit(slack_payload) -> bool:
     return slack_payload.get('type') == 'view_submission'
+
+
+def is_button_pressed(payload: dict) -> bool:
+    return payload.get('type') == 'block_actions' and payload['actions'][0]['type'] == 'button'
+
+
+def get_button_action_id(payload: dict) -> str:
+    return payload['actions'][0]['action_id']
+
+def get_submission(payload: dict) -> str:
+    return payload['view']['private_metadata']
 
 
 def parse_slack_event_body(event: dict) -> dict:
@@ -45,6 +50,34 @@ def update_slack_message(response_url: str, message: dict) -> None:
         url=response_url,
         json=message
     )
+
+
+def get_setup_modal(channel_id: str) -> dict:
+    message = json.load(open('templates/setup_modal.json'))
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
+
+
+def get_update_modal(channel_id: str) -> dict:
+    message = json.load(open('templates/update_modal.json'))['without']
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
+
+
+def get_updates_reminder_message():
+    return json.load(open('templates/update_reminder.json'))
 
 
 def retrieve_project_details(payload: dict) -> dict:

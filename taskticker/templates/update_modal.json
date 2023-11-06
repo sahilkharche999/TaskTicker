@@ -1,0 +1,137 @@
+{
+  "with": {
+    "title": {
+      "type": "plain_text",
+      "text": "TaskTicker",
+      "emoji": true
+    },
+    "private_metadata": "project_update_view",
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit",
+      "emoji": true
+    },
+    "type": "modal",
+    "close": {
+      "type": "plain_text",
+      "text": "Cancel",
+      "emoji": true
+    },
+    "blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": "Project Updates"
+        }
+      },
+      {
+        "type": "input",
+        "element": {
+          "type": "plain_text_input",
+          "multiline": true,
+          "action_id": "plain_text_input-action"
+        },
+        "label": {
+          "type": "plain_text",
+          "text": "Updates :",
+          "emoji": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": " "
+        },
+        "accessory": {
+          "type": "checkboxes",
+          "options": [
+            {
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Blockers?*"
+              },
+              "value": "value-0"
+            }
+          ],
+          "action_id": "blocker-checkboxes-action"
+        }
+      },
+      {
+        "type": "input",
+        "element": {
+          "type": "plain_text_input",
+          "multiline": true,
+          "action_id": "plain_text_input-action"
+        },
+        "label": {
+          "type": "plain_text",
+          "text": "Blockers",
+          "emoji": true
+        }
+      }
+    ]
+  },
+  "without": {
+    "title": {
+      "type": "plain_text",
+      "text": "TaskTicker",
+      "emoji": true
+    },
+    "private_metadata": "project_update_view",
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit",
+      "emoji": true
+    },
+    "type": "modal",
+    "close": {
+      "type": "plain_text",
+      "text": "Cancel",
+      "emoji": true
+    },
+    "blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": "Project Updates"
+        }
+      },
+      {
+        "type": "input",
+        "element": {
+          "type": "plain_text_input",
+          "multiline": true,
+          "action_id": "plain_text_input-action"
+        },
+        "label": {
+          "type": "plain_text",
+          "text": "Updates :",
+          "emoji": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": " "
+        },
+        "accessory": {
+          "type": "checkboxes",
+          "options": [
+            {
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Blockers?*"
+              },
+              "value": "value-0"
+            }
+          ],
+          "action_id": "blocker-checkboxes-action"
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 from datetime import date
 from slack_sdk.errors import SlackApiError
-from messager import get_updates_reminder_message
+from helper import get_updates_reminder_message
 from config import DYNAMO_DB_Table, SLACK_CLIENT
 
 
@@ -14,11 +14,34 @@ def send_notifications():
     ).get('Item', {}).get('projects', [])
     for project in projects:
         try:
-            message = get_updates_reminder_message()
+            blocks = get_updates_reminder_message()
             res = SLACK_CLIENT.chat_postEphemeral(
                 channel=project['channel'],
                 user=project['engineer'],
-                message=message)
+                text="Reminder to update your tasks for today!",
+                blocks=blocks)
             print(res)
         except SlackApiError as e:
             print(f'Error occurred in sending message : {e} --- channel id : {project["channel"]}')
+
+
+def schedule_notification(user: str, post_at: int, channel: str):
+    try:
+        blocks = get_updates_reminder_message()
+        blocks[1] = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi again, Reminding you to post update in <#{channel}>!",
+            }
+        }
+        res = SLACK_CLIENT.chat_scheduleMessage(
+            text="Hi again!",
+            blocks=blocks,
+            post_at=post_at,
+            channel=user
+        )
+        print(res)
+
+    except SlackApiError as e:
+        print(f'Error occurred in sending message : {e}')
