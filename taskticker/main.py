@@ -53,7 +53,7 @@ def lambda_handler(event: dict, context):
                     }
                 if submission == 'project_update_view':
                     print('project update view')
-
+                    
             if is_button_pressed(payload):
                 action_id = get_button_action_id(payload)
                 if action_id == 'update_now_action':

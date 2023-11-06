@@ -5,6 +5,7 @@ from urllib.parse import parse_qs
 from config import DYNAMO_DB_Table, LOG1_URL
 
 
+
 def is_from_slack(event: dict) -> bool:
     return event.get('headers', {}).get('User-Agent').startswith('Slackbot 1.0')
 
@@ -103,7 +104,6 @@ def save_to_db(payload: dict):
     with DYNAMO_DB_Table.batch_writer() as batch:
         for k, v in db_data.items():
             batch.put_item(Item={'week_day': k, 'projects': v})
-
 
 def post_updates_to_log1(
         update: str,

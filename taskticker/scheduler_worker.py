@@ -12,7 +12,9 @@ def send_notifications():
         },
         ProjectionExpression='projects'
     ).get('Item', {}).get('projects', [])
+
     for project in projects:
+        print("project -> ", project)
         try:
             blocks = get_updates_reminder_message()
             res = SLACK_CLIENT.chat_postEphemeral(
