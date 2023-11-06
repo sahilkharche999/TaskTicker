@@ -1,38 +1,33 @@
 import datetime
-import os
 
-from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from helper import dynamodb, parse_db_response, create_item_if_not_exists
+from config import SLACK_CLIENT, DB_TABLE_NAME
+from helper import create_item_if_not_exists, dynamodb
 from messager import get_updates_reminder_message
-
-slack_client = WebClient(token=os.environ.get('BOT_TOKEN'))
-tbl_name = os.environ.get('DB_TABLE_NAME')
 
 
 def send_notifications():
     today = datetime.date.today()
     week_day = today.strftime('%A').upper()
     create_item_if_not_exists(week_day)
-    response = dynamodb.get_item(
-        TableName=tbl_name,
+    response = dynamodb.Table(DB_TABLE_NAME).get_item(
         Key={
-            'week_day': {
-                'S': week_day
-            }
-        },
-        AttributesToGet=['projects']
+            'week_day': week_day
+        }
     )
-    projects_string = response['Item']['projects']['S']
-    if projects_string == '[]':
+    print(response)
+    projects = response['Item']['projects']
+    if len(projects) == 0:
         return
-    projects = parse_db_response(projects_string)
-    print(projects_string)
     for project in projects:
+        print("project -> ", project)
         try:
             message = get_updates_reminder_message()
-            res = slack_client.chat_postMessage(channel=project['channel'], **message)
+            print(message)
+            user = SLACK_CLIENT.users_profile_get(user=project['engineer'], include_labels=True)
+            print(user)
+            res = SLACK_CLIENT.chat_postMessage(channel=project['channel'], **message)
             print(res)
         except SlackApiError as e:
             print(f'Error occurred in sending message : {e} --- channel id : {project["channel"]}')

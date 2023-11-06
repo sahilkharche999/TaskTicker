@@ -48,5 +48,3 @@ def lambda_handler(event: dict, context):
                     "statusCode": 204
                 }
 
-
-lambda_handler(event={'source': 'aws.events'}, context=None)
