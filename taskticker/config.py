@@ -1,3 +1,4 @@
+import os
 import boto3
 import json
 from slack_sdk import WebClient
@@ -18,4 +19,5 @@ def fetch_config() -> dict:
 
 app_config = fetch_config()
 SLACK_CLIENT = WebClient(token=app_config.get('slack-bot-oauth-token'))
+DB_TABLE_NAME = os.environ.get('DB_TABLE_NAME')
 # slack_logs_channel = app_config.get('logs-channel-id')

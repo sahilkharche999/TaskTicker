@@ -1,14 +1,13 @@
 import ast
 import json
-import os
 from urllib.parse import parse_qs
 
 import boto3
 import requests
 
-# mndp_client = boto3.session.Session(profile_name='mndp', region_name='ap-south-1')
-tbl_name = os.environ.get('DB_TABLE_NAME')
-dynamodb = boto3.client('dynamodb')
+from config import DB_TABLE_NAME
+
+dynamodb = boto3.resource('dynamodb')
 
 
 def is_from_slack(event: dict) -> bool:
@@ -68,10 +67,10 @@ def save_to_db(payload: dict):
     del new_project['frequency']
     db_data = {}
     for i in freq:
-        request_item = {tbl_name: {'Key': {'week_day': {'S': i}}, 'AttributesToGet': ['projects']}}
         create_item_if_not_exists(i)
-        items = dynamodb.get_item(**request_item)
-        val = parse_db_response(items)
+        table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
+        res = table.get_item(Key={"week_day": i})['Item']
+        val = res['projects']
         val.append(new_project)
         db_data[i] = val
     print(db_data)
@@ -80,42 +79,29 @@ def save_to_db(payload: dict):
 
 
 def update_item(key, val):
-    primary_key = {
-        'week_day': {'S': key}
-    }
-
+    table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
     update_expression = "SET projects = :value1"
-    expression_attribute_values = {
-        ':value1': {'S': str(val)}
-    }
-
-    update_params = {
-        'TableName': tbl_name,
-        'Key': primary_key,
-        'UpdateExpression': update_expression,
-        'ExpressionAttributeValues': expression_attribute_values,
-    }
-
-    response = dynamodb.update_item(**update_params)
+    response = table.update_item(
+        Key={
+            'week_day': key
+        },
+        UpdateExpression=update_expression,
+        ExpressionAttributeValues={
+            ':value1': val,
+        },
+        ReturnValues="UPDATED_NEW"
+    )
     print(response)
 
 
 def create_item_if_not_exists(item):
-    request_item = {'TableName': tbl_name,
-                    'Key':
-                        {'week_day': {'S': item}
-                         },
-                    }
-    res: dict = dynamodb.get_item(**request_item)
+    table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
+    res = table.get_item(Key={'week_day': item})
     if 'Item' not in res.keys():
-        dynamodb.put_item(**{'TableName': tbl_name,
-                             'Item': {
-                                 {'week_day': {'S': item}
-                                  },
-                                 {'projects': {'S': '[]'}
-                                  }
-                             }
-                             }
-                          )
+        resp = table.put_item(Item={
+            'week_day': item,
+            'projects': []
+        })
+        print(resp)
     else:
         print(res)
