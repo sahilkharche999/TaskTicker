@@ -1,16 +1,9 @@
-import ast
 import json
-from urllib.parse import parse_qs
-from datetime import date
-
-import boto3
 import requests
+from datetime import date
+from urllib.parse import parse_qs
+from config import DYNAMO_DB_Table, LOG1_URL
 
-from taskticker.config import LOG1_URL
-from taskticker.config import DB_TABLE_NAME
-
-tbl_name = os.environ.get('DB_TABLE_NAME')
-dynamodb = boto3.resource('dynamodb')
 
 
 def is_from_slack(event: dict) -> bool:
@@ -26,7 +19,18 @@ def is_slack_command(body: dict) -> bool:
 
 
 def is_slack_submit(slack_payload) -> bool:
-    return any(map(lambda x: x['action_id'] == 'setup_submit', slack_payload['actions']))
+    return slack_payload.get('type') == 'view_submission'
+
+
+def is_button_pressed(payload: dict) -> bool:
+    return payload.get('type') == 'block_actions' and payload['actions'][0]['type'] == 'button'
+
+
+def get_button_action_id(payload: dict) -> str:
+    return payload['actions'][0]['action_id']
+
+def get_submission(payload: dict) -> str:
+    return payload['view']['private_metadata']
 
 
 def parse_slack_event_body(event: dict) -> dict:
@@ -37,78 +41,69 @@ def get_payload(body: dict):
     return json.loads(body.get('payload')[0])
 
 
-def update_slack_message(response_url: str, message: dict):
-    response = requests.post(
+def update_slack_message(response_url: str, message: dict) -> None:
+    """
+    Update an existing Slack message
+    :param response_url: response url of the message
+    :param message: new message
+    """
+    requests.post(
         url=response_url,
         json=message
     )
 
 
-def parse_db_response(res: str):
-    obj = ast.literal_eval(res)
-    if isinstance(obj, list):
-        return obj
-    if isinstance(obj, dict):
-        return obj
+def get_setup_modal(channel_id: str) -> dict:
+    message = json.load(open('templates/setup_modal.json'))
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
+
+
+def get_update_modal(channel_id: str) -> dict:
+    message = json.load(open('templates/update_modal.json'))['without']
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
+
+
+def get_updates_reminder_message():
+    return json.load(open('templates/update_reminder.json'))
 
 
 def retrieve_project_details(payload: dict) -> dict:
-    data = {'project_id': payload['state']['values']['vG6RL']['plain_text_input-action']['value'],
-            'engineer': payload['state']['values']['pfx1W']['user_select-action']['selected_user'],
-            'scrum': payload['state']['values']['jdZjD']['user_select-action']['selected_user'],
-            'channel': payload['channel']['id']}
-    freq = []
-    for x in payload['state']['values']['9PkmD']['multi_static_select-action']['selected_options']:
-        freq.append(x['value'])
-    data['frequency'] = freq
-    return data
+    state_values = payload['view']['state']['values'].values()
+    values = {key: val for state in state_values for key, val in state.items()}
+    return {'project_id': values['project_id-action']['value'],
+            'engineer': values['user_select-action']['selected_user'],
+            'scrum': values['scrum_select-action']['selected_user'],
+            'channel': payload['view']['blocks'][1]['text']['text'],
+            'frequency': [x['value'] for x in values['frequency_select-action']['selected_options']]
+            }
 
 
 def save_to_db(payload: dict):
     new_project = retrieve_project_details(payload)
-    freq = new_project['frequency']
-    del new_project['frequency']
+    days = new_project.pop('frequency')
     db_data = {}
-    for i in freq:
-        create_item_if_not_exists(i)
-        table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
-        res = table.get_item(Key={"week_day": i})['Item']
-        val = res['projects']
-        val.append(new_project)
-        db_data[i] = val
+    for day in days:
+        existing_projects = DYNAMO_DB_Table.get_item(Key={'week_day': day}).get('Item', {}).get('projects', [])
+        existing_projects.append(new_project)
+        db_data[day] = existing_projects
     print(db_data)
-    for k, v in db_data.items():
-        update_item(key=k, val=v)
-
-
-def update_item(key, val):
-    table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
-    update_expression = "SET projects = :value1"
-    response = table.update_item(
-        Key={
-            'week_day': key
-        },
-        UpdateExpression=update_expression,
-        ExpressionAttributeValues={
-            ':value1': val,
-        },
-        ReturnValues="UPDATED_NEW"
-    )
-    print(response)
-
-
-def create_item_if_not_exists(item):
-    table = boto3.resource('dynamodb').Table(DB_TABLE_NAME)
-    res = table.get_item(Key={'week_day': item})
-    if 'Item' not in res.keys():
-        resp = table.put_item(Item={
-            'week_day': item,
-            'projects': []
-        })
-        print(resp)
-    else:
-        print(res)
-
+    with DYNAMO_DB_Table.batch_writer() as batch:
+        for k, v in db_data.items():
+            batch.put_item(Item={'week_day': k, 'projects': v})
 
 def post_updates_to_log1(
         update: str,

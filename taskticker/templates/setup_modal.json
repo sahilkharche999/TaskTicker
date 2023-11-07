@@ -1,10 +1,27 @@
 {
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "TaskTicker",
+		"emoji": true
+	},
+	"private_metadata": "project_setup_view",
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
 	"blocks": [
 		{
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Enter the following details to Initialize TaskTicker bot ",
+				"text": "Update Channel Settings",
 				"emoji": true
 			}
 		},
@@ -17,12 +34,12 @@
 				"type": "number_input",
 				"is_decimal_allowed": false,
 				"min_value": "1",
-				"action_id": "plain_text_input-action"
+				"action_id": "project_id-action"
 			},
 			"label": {
 				"type": "plain_text",
 				"text": "Enter the project ID from Log1 :",
-				"emoji": true
+				"emoji": false
 			}
 		},
 		{
@@ -46,7 +63,7 @@
 			"label": {
 				"type": "plain_text",
 				"text": "Select the Slack handler of engineer :",
-				"emoji": true
+				"emoji": false
 			}
 		},
 		{
@@ -65,7 +82,7 @@
 					"text": "Select user",
 					"emoji": true
 				},
-				"action_id": "user_select-action"
+				"action_id": "scrum_select-action"
 			},
 			"label": {
 				"type": "plain_text",
@@ -91,7 +108,7 @@
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select days",
-					"emoji": true
+					"emoji": false
 				},
 				"options": [
 					{
@@ -135,24 +152,8 @@
 						"value": "FRIDAY"
 					}
 				],
-				"action_id": "multi_static_select-action"
+				"action_id": "frequency_select-action"
 			}
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Submit",
-						"emoji": true
-					},
-					"style": "primary",
-					"value": "submit",
-					"action_id": "setup_submit"
-				}
-			]
 		}
 	]
 }
