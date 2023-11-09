@@ -2,8 +2,7 @@ import json
 import requests
 from datetime import date
 from urllib.parse import parse_qs
-from config import DYNAMO_DB_Table, LOG1_URL
-
+from config import DYNAMO_DB_Table, LOG1_URL, LOG1_TOKEN
 
 
 def is_from_slack(event: dict) -> bool:
@@ -66,7 +65,7 @@ def get_setup_modal(channel_id: str) -> dict:
 
 
 def get_update_modal(channel_id: str) -> dict:
-    message = json.load(open('templates/update_modal.json'))['without']
+    message = json.load(open('templates/update_modal.json'))['with']
     message['blocks'].insert(1, {
         "type": "section",
         "text": {
@@ -92,6 +91,12 @@ def retrieve_project_details(payload: dict) -> dict:
             }
 
 
+def retrieve_update_details(payload: dict) -> dict:
+    state_values = payload['view']['state']['values'].values()
+    values = {key: val for state in state_values for key, val in state.items()}
+    return {'update': values['project-update-action']['value']}
+
+
 def save_to_db(payload: dict):
     new_project = retrieve_project_details(payload)
     days = new_project.pop('frequency')
@@ -106,6 +111,7 @@ def save_to_db(payload: dict):
             batch.put_item(Item={'week_day': k, 'projects': v})
 
 def post_updates_to_log1(
+        project_id: int,
         update: str,
         sprint_start: date,
         sprint_end: date,
@@ -121,17 +127,18 @@ def post_updates_to_log1(
     """
     headers = {
         "Accept": "application/json",
-        "authorization": f"Token **********"
+        "authorization": f"Token {LOG1_TOKEN}"
     }
     data = {
-        "update": "Project update bot test2",
-        "start": date.today().strftime("%Y-%m-%d"),
-        "end": date.today().strftime("%Y-%m-%d"),
-        "type": 'project'
+        "update": update,
+        "start": sprint_start.strftime("%Y-%m-%d"),
+        "end": sprint_end.strftime("%Y-%m-%d"),
+        "type": update_type
     }
-    response = requests.post(url=LOG1_URL, headers=headers, data=data)
+    url = f"{LOG1_URL}/project/{project_id}/updates/"
+    response = requests.post(url=url, headers=headers, data=data)
     return {
         "statusCode": response.status_code,
-        "body": response.text,
+        "body": json.dumps({'text': response.text}),
     }
 

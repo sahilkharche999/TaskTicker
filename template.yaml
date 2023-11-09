@@ -28,6 +28,7 @@ Resources:
       Environment:
         Variables:
           DB_TABLE_NAME: !Ref ProjectUpdateTable
+          LOG1_URL: "https://staging.log1.com/api"
       Architectures:
         - x86_64
       Events:
