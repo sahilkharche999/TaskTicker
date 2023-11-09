@@ -30,7 +30,7 @@
         "element": {
           "type": "plain_text_input",
           "multiline": true,
-          "action_id": "plain_text_input-action"
+          "action_id": "project-update-action"
         },
         "label": {
           "type": "plain_text",
