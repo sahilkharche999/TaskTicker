@@ -1,17 +1,17 @@
 {
   "with": {
+    "type": "modal",
+    "private_metadata": "project_update_view",
     "title": {
       "type": "plain_text",
-      "text": "TaskTicker",
+      "text": "My App",
       "emoji": true
     },
-    "private_metadata": "project_update_view",
     "submit": {
       "type": "plain_text",
       "text": "Submit",
       "emoji": true
     },
-    "type": "modal",
     "close": {
       "type": "plain_text",
       "text": "Cancel",
@@ -19,6 +19,7 @@
     },
     "blocks": [
       {
+        "block_id": "project_update_header",
         "type": "header",
         "text": {
           "type": "plain_text",
@@ -26,6 +27,7 @@
         }
       },
       {
+        "block_id": "project_update_text",
         "type": "input",
         "element": {
           "type": "plain_text_input",
@@ -40,6 +42,7 @@
       },
       {
         "type": "section",
+        "block_id": "project_update_checkbox",
         "text": {
           "type": "mrkdwn",
           "text": " "
@@ -51,19 +54,19 @@
               "text": {
                 "type": "mrkdwn",
                 "text": "*Blockers?*"
-              },
-              "value": "value-0"
+              }
             }
           ],
-          "action_id": "blocker-checkboxes-action"
+          "action_id": "blocker-checkbox-action"
         }
       },
       {
+        "block_id": "project_update_blocker",
         "type": "input",
         "element": {
           "type": "plain_text_input",
           "multiline": true,
-          "action_id": "plain_text_input-action"
+          "action_id": "blocker_input-action"
         },
         "label": {
           "type": "plain_text",
@@ -93,6 +96,7 @@
     },
     "blocks": [
       {
+        "block_id": "project_update_header",
         "type": "header",
         "text": {
           "type": "plain_text",
@@ -100,11 +104,12 @@
         }
       },
       {
+        "block_id": "project_update_text",
         "type": "input",
         "element": {
           "type": "plain_text_input",
           "multiline": true,
-          "action_id": "plain_text_input-action"
+          "action_id": "project-update-action"
         },
         "label": {
           "type": "plain_text",
@@ -114,6 +119,7 @@
       },
       {
         "type": "section",
+        "block_id": "project_update_checkbox",
         "text": {
           "type": "mrkdwn",
           "text": " "
@@ -125,11 +131,10 @@
               "text": {
                 "type": "mrkdwn",
                 "text": "*Blockers?*"
-              },
-              "value": "value-0"
+              }
             }
           ],
-          "action_id": "blocker-checkboxes-action"
+          "action_id": "blocker-checkbox-action"
         }
       }
     ]

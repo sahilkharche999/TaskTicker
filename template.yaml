@@ -6,13 +6,49 @@ Globals:
     Timeout: 120
     MemorySize: 128
 
+Parameters:
+  "Environment":
+    Type: String
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+  "Log1Url":
+    Type: String
+    Description: "Log1 URL"
+
 Resources:
   ProjectUpdateTable:
-    Type: AWS::Serverless::SimpleTable
+    Type: AWS::DynamoDB::Table
     Properties:
-      PrimaryKey:
-        Name: week_day
-        Type: String
+        TableName: !Sub
+          - 'TaskTickerDataTable-${Env}'
+          - Env: !Ref Environment
+        DeletionProtectionEnabled: true
+        AttributeDefinitions:
+            -
+              AttributeName: week_day
+              AttributeType: S
+        KeySchema:
+            -
+              AttributeName: week_day
+              KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+  ChannelMappingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub
+        - 'TaskTickerChannelMapping-${Env}'
+        - Env: !Ref Environment
+      DeletionProtectionEnabled: true
+      AttributeDefinitions:
+        - AttributeName: channel_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: channel_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
   TaskTickerFunction:
     Type: AWS::Serverless::Function
@@ -23,12 +59,16 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProjectUpdateTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChannelMappingTable
         - SSMParameterReadPolicy:
             ParameterName: taskticker-*
       Environment:
         Variables:
+          ENV: !Ref Environment
           DB_TABLE_NAME: !Ref ProjectUpdateTable
-          LOG1_URL: "https://staging.log1.com/api"
+          CHANNEL_MAPPING_TABLE_NAME: !Ref ChannelMappingTable
+          LOG1_URL: !Ref Log1Url
       Architectures:
         - x86_64
       Events:

@@ -16,7 +16,8 @@ def send_notifications():
     for project in projects:
         print("project -> ", project)
         try:
-            blocks = get_updates_reminder_message()
+            blocks = get_updates_reminder_message(channel_id=project['channel'])
+            # post ephemeral message to slack with metadata
             res = SLACK_CLIENT.chat_postEphemeral(
                 channel=project['channel'],
                 user=project['engineer'],
@@ -27,14 +28,14 @@ def send_notifications():
             print(f'Error occurred in sending message : {e} --- channel id : {project["channel"]}')
 
 
-def schedule_notification(user: str, post_at: int, channel: str):
+def schedule_notification(user: str, post_at: int, channel_id: str):
     try:
-        blocks = get_updates_reminder_message()
+        blocks = get_updates_reminder_message(channel_id=channel_id)
         blocks[1] = {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hi again, Reminding you to post update in <#{channel}>!",
+                "text": f"Hi again, Reminding you to post update in <#{channel_id}>!",
             }
         }
         res = SLACK_CLIENT.chat_scheduleMessage(
@@ -43,7 +44,7 @@ def schedule_notification(user: str, post_at: int, channel: str):
             post_at=post_at,
             channel=user
         )
-        print(res)
+        print('scheduleMessage response: ', res)
 
     except SlackApiError as e:
         print(f'Error occurred in sending message : {e}')
