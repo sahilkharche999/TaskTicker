@@ -4,12 +4,15 @@
 
 sam build
 
-sam deploy --stack-name taskticker-test \
+sam deploy --stack-name taskticker \
   --capabilities CAPABILITY_IAM \
   --region ap-south-1 \
   --resolve-s3 \
-  --confirm-changeset
+  --confirm-changeset \
+  --parameter-overrides \
+  Environment='prod' \
+  Log1Url='https://api.log1.com/api'
 
 
 # to delete stack
-# sam delete --stack-name taskticker-test
+# sam delete --stack-name taskticker
