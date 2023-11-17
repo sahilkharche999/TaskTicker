@@ -1,4 +1,7 @@
 {
   "slack-bot-oauth-token": "xoxb-XXXXXX",
-  "log1-token": "XXXXX"
+  "log1-token": "XXXXX",
+  "admins": [
+    "XXXXX"
+  ]
 }

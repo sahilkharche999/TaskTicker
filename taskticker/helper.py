@@ -2,7 +2,7 @@ import json
 import requests
 from datetime import date
 from urllib.parse import parse_qs
-from config import DYNAMO_DB_Table, LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table
+from config import DYNAMO_DB_Table, LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
 
 
 def is_from_slack(event: dict) -> bool:
@@ -15,6 +15,10 @@ def is_from_aws_event_bridge(event: dict) -> bool:
 
 def is_slack_command(body: dict) -> bool:
     return "command" in body.keys()
+
+
+def is_from_admin(body: dict) -> bool:
+    return body['user_id'][0] in ADMIN_USERS
 
 
 def is_slack_submit(slack_payload) -> bool:

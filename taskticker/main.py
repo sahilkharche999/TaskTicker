@@ -20,10 +20,16 @@ def lambda_handler(event: dict, context):
         if is_slack_command(body):
             print("Slack Command:", body)
             if body['command'][0] == '/setup':
-                SLACK_CLIENT.views_open(
-                    trigger_id=body['trigger_id'][0],
-                    view=get_setup_modal(body['channel_id'][0])
-                )
+                if is_from_admin(body):
+                    SLACK_CLIENT.views_open(
+                        trigger_id=body['trigger_id'][0],
+                        view=get_setup_modal(body['channel_id'][0])
+                    )
+                else:
+                    return {
+                        "statusCode": 200,
+                        "body": "You are not authorized to use this command. Please contact admin."
+                    }
             elif body['command'][0] == '/update':
                 res = SLACK_CLIENT.views_open(
                     trigger_id=body['trigger_id'][0],

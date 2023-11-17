@@ -22,6 +22,7 @@ def fetch_config() -> dict:
 
 app_config = fetch_config()
 SLACK_CLIENT = WebClient(token=app_config.get('slack-bot-oauth-token'))
+ADMIN_USERS = app_config.get('admins')
 DYNAMO_DB_Table = boto3.resource('dynamodb').Table(os.environ.get('DB_TABLE_NAME'))
 DYNAMO_MAPPING_DB_Table = boto3.resource('dynamodb').Table(os.environ.get('CHANNEL_MAPPING_TABLE_NAME'))
 LOG1_TOKEN = app_config.get('log1-token')
