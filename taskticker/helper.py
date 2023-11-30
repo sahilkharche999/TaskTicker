@@ -142,7 +142,6 @@ def save_to_db(payload: dict):
 
 
 def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
-    print('user_obj : ', user)
     message_blocks = [
         {
             "type": "section",
