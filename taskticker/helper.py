@@ -142,12 +142,13 @@ def save_to_db(payload: dict):
 
 
 def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
+    date = datetime.now().strftime('%d/%m/%y')
     message_blocks = [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Today's Updates:*\n{update}"
+                "text": f"*Today's Updates ({date}):*\n{update}"
             }
         }]
     if blocker:
