@@ -152,15 +152,13 @@ def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str
         }]
     if blocker:
         message_blocks.append(
-            [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Blockers:*:exclamation:\n{blocker}"
-                    }
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Blockers:*:exclamation:\n{blocker}"
                 }
-            ]
+            }
         )
     return post_message_as_user(channel_id, message_blocks, user['id'])
 
@@ -205,9 +203,7 @@ def fetch_user_details(user_id: str):
     try:
         response = SLACK_CLIENT.users_info(user=user_id)
         if response['ok']:
-            user = response['user']
-            print('User Details : ', user)
-            return {'ok': True, 'res': user}
+            return {'ok': True, 'res': response['user']}
     except SlackApiError as e:
         print('Error occurred while fetching user details. : ', e)
         return {'ok': False, 'res': {}}
