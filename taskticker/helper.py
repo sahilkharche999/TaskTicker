@@ -2,6 +2,9 @@ import json
 import requests
 from datetime import date
 from urllib.parse import parse_qs
+
+from slack_sdk.errors import SlackApiError
+
 from config import DYNAMO_DB_Table, LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
 
 
@@ -138,7 +141,8 @@ def save_to_db(payload: dict):
             batch.put_item(Item={'week_day': k, 'projects': v})
 
 
-def post_updates_to_slack(channel_id: str, update: str, blocker: str = None):
+def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
+    print('user_obj : ', user)
     message_blocks = [
         {
             "type": "section",
@@ -149,19 +153,17 @@ def post_updates_to_slack(channel_id: str, update: str, blocker: str = None):
         }]
     if blocker:
         message_blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Blocker:*:exclamation:\n{blocker}"
+            [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Blocker:*:exclamation:\n{blocker}"
+                    }
                 }
-            }
+            ]
         )
-    return SLACK_CLIENT.chat_postMessage(
-        channel=channel_id,
-        text="Update posted!",
-        blocks=message_blocks,
-    )
+    return post_message_as_user(channel_id, message_blocks, user['id'])
 
 
 def post_updates_to_log1(
@@ -198,3 +200,38 @@ def post_updates_to_log1(
         "statusCode": response.status_code,
         "body": json.dumps({'text': response.text}),
     }
+
+
+def fetch_user_details(user_id: str):
+    try:
+        response = SLACK_CLIENT.users_info(user=user_id)
+        if response['ok']:
+            user = response['user']
+            print('User Details : ', user)
+            return {'ok': True, 'res': user}
+    except SlackApiError as e:
+        print('Error occurred while fetching user details. : ', e)
+        return {'ok': False, 'res': {}}
+
+
+def post_message_as_user(channel_id: str, message_blocks: list, user_id: str):
+    """
+    :param channel_id: Channel ID of project channel
+    :param message_blocks: The message body
+    :param user_id: Engineer's slack user ID
+    """
+    user_details = fetch_user_details(user_id)
+    if user_details['ok']:
+        user_details = user_details['res']
+        return SLACK_CLIENT.chat_postMessage(
+            channel=channel_id,
+            text="Update posted!",
+            blocks=message_blocks,
+            # as_user=False,
+            username=user_details['profile']['display_name'],
+            icon_url=user_details['profile']['image_original'],
+            user=user_id
+        )
+    else:
+        return 'Error occurred, while fetching user details!'
+
