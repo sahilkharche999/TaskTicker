@@ -72,6 +72,7 @@ def lambda_handler(event: dict, context):
 
                     res = post_updates_to_slack(
                         channel_id=payload['view']['blocks'][1]['text']['text'],
+                        user={'id': payload['user']['id'], 'username': payload['user']['username']},
                         update=update['update'],
                         blocker=update['blocker']
                     )
