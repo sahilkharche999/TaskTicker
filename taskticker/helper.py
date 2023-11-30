@@ -148,7 +148,7 @@ def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Update:*\n{update}"
+                "text": f"*Today's Updates:*\n{update}"
             }
         }]
     if blocker:
@@ -158,7 +158,7 @@ def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Blocker:*:exclamation:\n{blocker}"
+                        "text": f"*Blockers:*:exclamation:\n{blocker}"
                     }
                 }
             ]
