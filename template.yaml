@@ -42,7 +42,6 @@ Resources:
       Runtime: python3.9
       Policies:
         - DynamoDBCrudPolicy:
-        - DynamoDBCrudPolicy:
             TableName: !Ref ChannelMappingTable
         - SSMParameterReadPolicy:
             ParameterName: taskticker-*
