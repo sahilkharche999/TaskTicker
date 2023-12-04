@@ -1,11 +1,11 @@
 import json
-import requests
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import parse_qs
 
+import requests
 from slack_sdk.errors import SlackApiError
 
-from config import DYNAMO_DB_Table, LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
+from config import LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
 
 
 def is_from_slack(event: dict) -> bool:
@@ -122,33 +122,25 @@ def retrieve_update_details(payload: dict) -> dict:
 def save_to_db(payload: dict):
     new_project = retrieve_project_details(payload)
     days = new_project.pop('frequency')
-    db_data = {}
     DYNAMO_MAPPING_DB_Table.put_item(
-        Item=
-        {
+        Item={
             'channel_id': new_project['channel'],
             'project_id': new_project['project_id'],
-            'user_id': new_project['engineer']
+            'user_id': new_project['engineer'],
+            'scrum_id': new_project['scrum'],
+            'days': days
         }
     )
-    for day in days:
-        existing_projects = DYNAMO_DB_Table.get_item(Key={'week_day': day}).get('Item', {}).get('projects', [])
-        existing_projects.append(new_project)
-        db_data[day] = existing_projects
-    print(db_data)
-    with DYNAMO_DB_Table.batch_writer() as batch:
-        for k, v in db_data.items():
-            batch.put_item(Item={'week_day': k, 'projects': v})
 
 
 def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
-    date = datetime.now().strftime('%d/%m/%y')
+    dt = datetime.now().strftime('%m/%d/%Y')
     message_blocks = [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Today's Updates ({date}):*\n{update}"
+                "text": f"*Today's Updates ({dt}):*\n{update}"
             }
         }]
     if blocker:
@@ -174,6 +166,7 @@ def post_updates_to_log1(
 ):
     """
     Post updates to log1
+    :param project_id: project ID
     :param update: update text
     :param sprint_start: sprint start date
     :param sprint_end: sprint end date
@@ -231,3 +224,63 @@ def post_message_as_user(channel_id: str, message_blocks: list, user_id: str):
     else:
         return 'Error occurred, while fetching user details!'
 
+
+def get_update_channel_settings_modal(channel_id: str):
+    query = fetch_channel_details(channel_id)
+    if query['Count'] > 0:
+        item = query['Items'][0]
+        modal = get_setup_modal(channel_id)
+        blocks = modal['blocks']
+        modal['private_metadata'] = 'update_settings_view'
+        # Project ID
+        blocks[3]['element']['initial_value'] = str(item['project_id'])
+        blocks[3]['block_id'] = 'PID'
+        # Engineer
+        blocks[5]['element']['initial_user'] = item['user_id']
+        blocks[5]['block_id'] = 'UID'
+        # Scrum
+        blocks[7]['element']['initial_user'] = item['scrum_id']
+        blocks[7]['block_id'] = 'SID'
+        # Days
+        initial_days_options = []
+        for day in item['days']:
+            initial_days_options.append(
+                {'text': {'type': 'plain_text', 'text': day, 'emoji': True},
+                 'value': day}
+            )
+        blocks[9]['accessory']['initial_options'] = initial_days_options
+        blocks[9]['block_id'] = 'DAY'
+        return modal
+
+
+def fetch_channel_details(channel_id: str):
+    query = DYNAMO_MAPPING_DB_Table.query(
+        KeyConditionExpression='#ci = :ci_value',
+        ExpressionAttributeNames={'#ci': 'channel_id'},
+        ExpressionAttributeValues={':ci_value': channel_id}
+    )
+    return query
+
+
+def update_channel_settings(payload: dict):
+    chl_details = retrieve_channel_details(payload)
+    print('Updating channel : ', chl_details)
+    DYNAMO_MAPPING_DB_Table.put_item(
+        Item={
+            'channel_id': chl_details['channel_id'],
+            'project_id': chl_details['project_id'],
+            'user_id': chl_details['user_id'],
+            'scrum_id': chl_details['scrum_id'],
+            'days': chl_details['days']
+        }
+    )
+
+
+def retrieve_channel_details(payload: dict):
+    values = payload['view']['state']['values']
+    days = [day['value'] for day in values['DAY']['frequency_select-action']['selected_options']]
+    return {'channel_id': payload['view']['blocks'][1]['text']['text'],
+            "project_id": values['PID']['project_id-action']['value'],
+            "user_id": values['UID']['user_select-action']['selected_user'],
+            "scrum_id": values['SID']['scrum_select-action']['selected_user'],
+            "days": days}

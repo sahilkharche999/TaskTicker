@@ -1,7 +1,5 @@
-from datetime import date
-
+from config import DEFAULT_SNOOZE_DELAY
 from helper import *
-from config import SLACK_CLIENT, DEFAULT_SNOOZE_DELAY
 from scheduler_worker import send_notifications, schedule_notification
 
 
@@ -19,7 +17,20 @@ def lambda_handler(event: dict, context):
         # If the event is a Slack Command
         if is_slack_command(body):
             print("Slack Command:", body)
-            if body['command'][0] == '/setup':
+            # Update channel settings
+            if body['command'][0] == '/settings':
+                if is_from_admin(body):
+                    SLACK_CLIENT.views_open(
+                        trigger_id=body['trigger_id'][0],
+                        view=get_update_channel_settings_modal(body['channel_id'][0])
+                    )
+                else:
+                    return {
+                        "statusCode": 200,
+                        "body": "You are not authorized to use this command. Please contact admin."
+                    }
+            # Initialize channel
+            elif body['command'][0] == '/setup':
                 if is_from_admin(body):
                     SLACK_CLIENT.views_open(
                         trigger_id=body['trigger_id'][0],
@@ -52,6 +63,11 @@ def lambda_handler(event: dict, context):
                     return {
                         "statusCode": 204
                     }
+
+                if submission == 'update_settings_view':
+                    print('UPDATE SETTING VIEW payload')
+                    update_channel_settings(payload)
+
                 if submission == 'project_update_view':
                     print('project update view')
                     update = retrieve_update_details(payload)
