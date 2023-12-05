@@ -1,6 +1,7 @@
-import os
-import boto3
 import json
+import os
+
+import boto3
 from slack_sdk import WebClient
 
 LOG1_URL = os.environ.get('LOG1_URL')
@@ -16,14 +17,13 @@ def fetch_config() -> dict:
             WithDecryption=True
         )
         return json.loads(response.get('Parameter').get('Value'))
-    except:
+    except Exception:
         raise Exception("Unable to find config! Please check if the config is present in SSM Parameter Store.")
 
 
 app_config = fetch_config()
 SLACK_CLIENT = WebClient(token=app_config.get('slack-bot-oauth-token'))
 ADMIN_USERS = app_config.get('admins')
-DYNAMO_DB_Table = boto3.resource('dynamodb').Table(os.environ.get('DB_TABLE_NAME'))
 DYNAMO_MAPPING_DB_Table = boto3.resource('dynamodb').Table(os.environ.get('CHANNEL_MAPPING_TABLE_NAME'))
 LOG1_TOKEN = app_config.get('log1-token')
 # slack_logs_channel = app_config.get('logs-channel-id')

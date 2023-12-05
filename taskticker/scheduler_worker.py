@@ -1,31 +1,33 @@
 from datetime import date
+
 from slack_sdk.errors import SlackApiError
+
+from config import SLACK_CLIENT, DYNAMO_MAPPING_DB_Table
 from helper import get_updates_reminder_message
-from config import DYNAMO_DB_Table, SLACK_CLIENT
 
 
 def send_notifications():
     week_day = date.today().strftime('%A').upper()
-    projects = DYNAMO_DB_Table.get_item(
-        Key={
-            'week_day': week_day
-        },
-        ProjectionExpression='projects'
-    ).get('Item', {}).get('projects', [])
+    projects = DYNAMO_MAPPING_DB_Table.scan(
+        FilterExpression="contains (days, :week_day)",
+        ExpressionAttributeValues={
+            ":week_day": week_day
+        }
+    ).get('Items', [])
 
     for project in projects:
         print("project -> ", project)
         try:
-            blocks = get_updates_reminder_message(channel_id=project['channel'])
+            blocks = get_updates_reminder_message(channel_id=project['channel_id'])
             # post ephemeral message to slack with metadata
             res = SLACK_CLIENT.chat_postEphemeral(
-                channel=project['channel'],
-                user=project['engineer'],
+                channel=project['channel_id'],
+                user=project['user_id'],
                 text="Reminder to update your tasks for today!",
                 blocks=blocks)
             print(res)
         except SlackApiError as e:
-            print(f'Error occurred in sending message : {e} --- channel id : {project["channel"]}')
+            print(f'Error occurred in sending message : {e} --- channel id : {project["channel_id"]}')
 
 
 def schedule_notification(user: str, post_at: int, channel_id: str):
