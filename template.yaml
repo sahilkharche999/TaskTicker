@@ -62,7 +62,7 @@ Resources:
           Type: Schedule
           Properties:
             State: ENABLED
-            Schedule: 'cron(0 12 * * ? *)' # UTC 12:00 & IST 17:30
+            Schedule: 'cron(0 14 * * ? *)' # UTC 14:00 & IST 19:30
             Description: Daily Update Schedule
       Layers:
       - Ref: libs
