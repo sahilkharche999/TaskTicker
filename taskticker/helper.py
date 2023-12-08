@@ -5,7 +5,7 @@ from urllib.parse import parse_qs
 import requests
 from slack_sdk.errors import SlackApiError
 
-from config import LOG1_URL, LOG1_TOKEN, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
+from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
 
 
 def is_from_slack(event: dict) -> bool:
@@ -176,7 +176,6 @@ def post_updates_to_log1(
     """
     headers = {
         "Accept": "application/json",
-        "authorization": f"Token {LOG1_TOKEN}"
     }
     data = {
         "update": update,
@@ -185,8 +184,8 @@ def post_updates_to_log1(
         "end": sprint_end.strftime("%Y-%m-%d"),
         "type": update_type
     }
-    url = f"{LOG1_URL}/project/{project_id}/updates/"
-    response = requests.post(url=url, headers=headers, data=data)
+    url = f"{LOG1_URL}/engineers/{project_id}/remote_project/update/?api_key={LOG1_API_KEY}"
+    response = requests.put(url=url, headers=headers, data=data)
     return {
         "statusCode": response.status_code,
         "body": json.dumps({'text': response.text}),
