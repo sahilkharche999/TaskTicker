@@ -1,10 +1,15 @@
+import json
 from datetime import date
-
 from slack_sdk.errors import SlackApiError
 
 from config import SLACK_CLIENT, DYNAMO_MAPPING_DB_Table
-from helper import get_updates_reminder_message
 
+
+def get_updates_reminder_message(channel_id: str) -> dict:
+    message = json.load(open('templates/update_reminder.json'))
+    for button in message[2]['elements']:
+        button['value'] = channel_id
+    return message
 
 def send_notifications():
     week_day = date.today().strftime('%A').upper()
