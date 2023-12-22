@@ -2,27 +2,23 @@
 	"type": "modal",
 	"title": {
 		"type": "plain_text",
-		"text": "TaskTicker",
-		"emoji": true
+		"text": "TaskTicker"
 	},
 	"private_metadata": "project_setup_view",
 	"submit": {
 		"type": "plain_text",
-		"text": "Submit",
-		"emoji": true
+		"text": "Submit"
 	},
 	"close": {
 		"type": "plain_text",
-		"text": "Cancel",
-		"emoji": true
+		"text": "Cancel"
 	},
 	"blocks": [
 		{
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Update Channel Settings",
-				"emoji": true
+				"text": "Update Channel Settings"
 			}
 		},
 		{
@@ -30,17 +26,28 @@
 		},
 		{
 			"type": "input",
+			"dispatch_action": true,
 			"element": {
 				"type": "number_input",
 				"is_decimal_allowed": false,
 				"min_value": "1",
-				"action_id": "project_id-action"
+				"action_id": "project_id-action",
+				"focus_on_load": true,
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Project ID"
+				},
+				"dispatch_action_config": {
+					"trigger_actions_on": [
+						"on_enter_pressed"
+					]
+				}
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Enter the project ID from Log1 :",
-				"emoji": false
-			}
+				"text": "Enter the project ID from Log1 :"
+			},
+			"block_id": "project_id_input"
 		},
 		{
 			"type": "section",
@@ -55,16 +62,15 @@
 				"type": "users_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Select user",
-					"emoji": true
+					"text": "Select engineer"
 				},
 				"action_id": "user_select-action"
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Select the Slack handler of engineer :",
-				"emoji": false
-			}
+				"text": "Select the Slack handler of engineer :"
+			},
+			"block_id": "user_select_input"
 		},
 		{
 			"type": "section",
@@ -79,16 +85,15 @@
 				"type": "users_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Select user",
-					"emoji": true
+					"text": "Select scrum"
 				},
 				"action_id": "scrum_select-action"
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Select the Slack handler of engineer's scrum :",
-				"emoji": true
-			}
+				"text": "Select the Slack handler of engineer's scrum :"
+			},
+			"block_id": "scrum_select_input"
 		},
 		{
 			"type": "section",
@@ -107,53 +112,48 @@
 				"type": "multi_static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Select days",
-					"emoji": false
+					"text": "Select days"
 				},
 				"options": [
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "MONDAY",
-							"emoji": true
+							"text": "MONDAY"
 						},
 						"value": "MONDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "TUESDAY",
-							"emoji": true
+							"text": "TUESDAY"
 						},
 						"value": "TUESDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "WEDNESDAY",
-							"emoji": true
+							"text": "WEDNESDAY"
 						},
 						"value": "WEDNESDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "THURSDAY",
-							"emoji": true
+							"text": "THURSDAY"
 						},
 						"value": "THURSDAY"
 					},
 					{
 						"text": {
 							"type": "plain_text",
-							"text": "FRIDAY",
-							"emoji": true
+							"text": "FRIDAY"
 						},
 						"value": "FRIDAY"
 					}
 				],
 				"action_id": "frequency_select-action"
-			}
+			},
+			"block_id": "frequency_select_input"
 		}
 	]
 }

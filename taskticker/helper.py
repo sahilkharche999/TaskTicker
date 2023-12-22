@@ -5,7 +5,13 @@ from urllib.parse import parse_qs
 import requests
 from slack_sdk.errors import SlackApiError
 
-from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS
+from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS, DEFAULT_SNOOZE_DELAY, \
+    PROJECT_UPDATE_FUNCTION_NAME
+from scheduler_worker import schedule_notification
+
+import boto3
+
+lambda_client = boto3.client('lambda')
 
 
 def is_from_slack(event: dict) -> bool:
@@ -24,23 +30,7 @@ def is_from_admin(body: dict) -> bool:
     return body['user_id'][0] in ADMIN_USERS
 
 
-def is_slack_submit(slack_payload) -> bool:
-    return slack_payload.get('type') == 'view_submission'
-
-
-def is_button_pressed(payload: dict) -> bool:
-    return payload.get('type') == 'block_actions' and payload['actions'][0]['type'] == 'button'
-
-
-def is_checkboxes_action(payload: dict) -> bool:
-    return payload.get('type') == 'block_actions' and payload['actions'][0]['type'] == 'checkboxes'
-
-
-def get_action_id(payload: dict) -> str:
-    return payload['actions'][0]['action_id']
-
-
-def get_submission(payload: dict) -> str:
+def get_submission_type(payload: dict) -> str:
     return payload['view']['private_metadata']
 
 
@@ -73,6 +63,20 @@ def get_setup_modal(channel_id: str) -> dict:
             "text": channel_id
         }
     })
+    channel_details = fetch_channel_details(channel_id)
+    if channel_details:
+        blocks = message['blocks']
+        # Project ID
+        blocks[3]['element']['initial_value'] = str(channel_details['project_id'])
+        # Engineer
+        blocks[5]['element']['initial_user'] = channel_details['user_id']
+        # Scrum
+        blocks[7]['element']['initial_user'] = channel_details['scrum_id']
+        # Days
+        if channel_details['days']:
+            blocks[9]['accessory']['initial_options'] = [
+                {'text': {'type': 'plain_text', 'text': day}, 'value': day}
+                for day in channel_details['days']]
     return message
 
 
@@ -88,13 +92,6 @@ def get_update_modal(channel_id: str, is_blocker: bool = False) -> dict:
     return message
 
 
-def get_updates_reminder_message(channel_id: str) -> dict:
-    message = json.load(open('templates/update_reminder.json'))
-    for button in message[2]['elements']:
-        button['value'] = channel_id
-    return message
-
-
 def get_channel_from_action_button(payload: dict) -> str:
     return payload['actions'][0]['value']
 
@@ -102,12 +99,13 @@ def get_channel_from_action_button(payload: dict) -> str:
 def retrieve_project_details(payload: dict) -> dict:
     state_values = payload['view']['state']['values'].values()
     values = {key: val for state in state_values for key, val in state.items()}
-    return {'project_id': int(values['project_id-action']['value']),
-            'engineer': values['user_select-action']['selected_user'],
-            'scrum': values['scrum_select-action']['selected_user'],
-            'channel': payload['view']['blocks'][1]['text']['text'],
-            'frequency': [x['value'] for x in values['frequency_select-action']['selected_options']]
-            }
+    return {
+        'channel_id': payload['view']['blocks'][1]['text']['text'],
+        'project_id': int(values['project_id-action']['value']),
+        'user_id': values['user_select-action']['selected_user'],
+        'scrum_id': values['scrum_select-action']['selected_user'],
+        'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
+    }
 
 
 def retrieve_update_details(payload: dict) -> dict:
@@ -119,18 +117,73 @@ def retrieve_update_details(payload: dict) -> dict:
     }
 
 
+def validate_channel_details(details: dict):
+    errors = {}
+    if not details['project_id']:
+        errors['project_id_input'] = "Project ID is required"
+    if not details['days']:
+        errors['frequency_select_input'] = "Frequency is required"
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "response_action": "errors",
+            "errors": errors
+        })
+    } if errors else None
+
+
 def save_to_db(payload: dict):
-    new_project = retrieve_project_details(payload)
-    days = new_project.pop('frequency')
-    DYNAMO_MAPPING_DB_Table.put_item(
-        Item={
-            'channel_id': new_project['channel'],
-            'project_id': new_project['project_id'],
-            'user_id': new_project['engineer'],
-            'scrum_id': new_project['scrum'],
-            'days': days
-        }
+    details = retrieve_project_details(payload)
+    if errors := validate_channel_details(details):
+        return errors
+    res = DYNAMO_MAPPING_DB_Table.put_item(
+        Item=details
     )
+    if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
+        SLACK_CLIENT.chat_postEphemeral(
+            channel=details['channel_id'],
+            user=payload['user']['id'],
+            text="Project setup complete!",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Project setup complete!"
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Engineer:*\n<@{details['user_id']}>"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Scrum:*\n<@{details['scrum_id']}>"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Project ID:*\n{details['project_id']}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Days:*\n{', '.join(details['days'])}"
+                        }
+                    ]
+                }
+            ]
+        )
+    else:
+        SLACK_CLIENT.chat_postEphemeral(
+            channel=details['channel_id'],
+            user=payload['user']['id'],
+            text="Something went wrong. Please try again."
+        )
+    return {
+        "statusCode": 200
+    }
 
 
 def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
@@ -217,62 +270,18 @@ def post_message_as_user(channel_id: str, message_blocks: list, user_id: str):
             blocks=message_blocks,
             # as_user=False,
             username=user_details['profile']['display_name'],
-            icon_url=user_details['profile']['image_original'],
-            user=user_id
+            icon_url=user_details['profile'].get('image_original'),
         )
     else:
         return 'Error occurred, while fetching user details!'
 
 
-def get_update_channel_settings_modal(channel_id: str):
-    query = fetch_channel_details(channel_id)
-    if query['Count'] > 0:
-        item = query['Items'][0]
-        modal = get_setup_modal(channel_id)
-        blocks = modal['blocks']
-        modal['private_metadata'] = 'update_settings_view'
-        # Project ID
-        blocks[3]['element']['initial_value'] = str(item['project_id'])
-        blocks[3]['block_id'] = 'PID'
-        # Engineer
-        blocks[5]['element']['initial_user'] = item['user_id']
-        blocks[5]['block_id'] = 'UID'
-        # Scrum
-        blocks[7]['element']['initial_user'] = item['scrum_id']
-        blocks[7]['block_id'] = 'SID'
-        # Days
-        initial_days_options = []
-        for day in item['days']:
-            initial_days_options.append(
-                {'text': {'type': 'plain_text', 'text': day, 'emoji': True},
-                 'value': day}
-            )
-        blocks[9]['accessory']['initial_options'] = initial_days_options
-        blocks[9]['block_id'] = 'DAY'
-        return modal
-
-
 def fetch_channel_details(channel_id: str):
-    query = DYNAMO_MAPPING_DB_Table.query(
-        KeyConditionExpression='#ci = :ci_value',
-        ExpressionAttributeNames={'#ci': 'channel_id'},
-        ExpressionAttributeValues={':ci_value': channel_id}
-    )
-    return query
-
-
-def update_channel_settings(payload: dict):
-    chl_details = retrieve_channel_details(payload)
-    print('Updating channel : ', chl_details)
-    DYNAMO_MAPPING_DB_Table.put_item(
-        Item={
-            'channel_id': chl_details['channel_id'],
-            'project_id': chl_details['project_id'],
-            'user_id': chl_details['user_id'],
-            'scrum_id': chl_details['scrum_id'],
-            'days': chl_details['days']
+    return DYNAMO_MAPPING_DB_Table.get_item(
+        Key={
+            'channel_id': channel_id
         }
-    )
+    ).get('Item')
 
 
 def retrieve_channel_details(payload: dict):
@@ -283,3 +292,169 @@ def retrieve_channel_details(payload: dict):
             "user_id": values['UID']['user_select-action']['selected_user'],
             "scrum_id": values['SID']['scrum_select-action']['selected_user'],
             "days": days}
+
+
+def post_project_update(payload):
+    update = retrieve_update_details(payload)
+    details = DYNAMO_MAPPING_DB_Table.get_item(
+        Key={
+            'channel_id': payload['view']['blocks'][1]['text']['text']
+        }
+    ).get('Item', {})
+    print('details', details)
+    res = post_updates_to_log1(
+        project_id=details['project_id'],
+        update=update['update'],
+        sprint_start=date.today(),
+        sprint_end=date.today(),
+        blocker=update['blocker']
+    )
+    print('log1 response', res)
+    res = post_updates_to_slack(
+        channel_id=payload['view']['blocks'][1]['text']['text'],
+        user={'id': payload['user']['id'], 'username': payload['user']['username']},
+        update=update['update'],
+        blocker=update['blocker']
+    )
+    print('slack response', res)
+    return {
+        "statusCode": 204
+    }
+
+
+def validate_command(body: dict) -> bool:
+    return body['user_id'][0] in ADMIN_USERS \
+        if body['command'][0] in ['/setup'] \
+        else body['command'][0] in ['/update']
+
+
+def slack_command_handler(body: dict):
+    if validate_command(body):
+        models = {
+            '/setup': get_setup_modal,
+            '/update': get_update_modal
+        }
+        trigger_id = body['trigger_id'][0]
+        command = body['command'][0]
+        channel_id = body['channel_id'][0]
+        res = SLACK_CLIENT.views_open(
+            trigger_id=trigger_id,
+            view=models[command](channel_id)
+        )
+        return {"statusCode": 204} \
+            if res.status_code == 200 and res.get('ok') \
+            else {
+            "statusCode": 200,
+            "body": json.dumps({"text": "Something went wrong. Please try again."})
+        }
+    else:
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"text": "You are not authorized to use this command. Please contact admin."})
+        }
+
+
+def slack_view_submit_handler(payload):
+    """
+    Handler for slack view submission
+    :param payload: payload
+    :return: response dict
+    """
+    submission = get_submission_type(payload)
+    actions = {
+        'project_setup_view': save_to_db,
+        'project_update_view': initiate_project_update_function
+    }
+    return actions[submission](payload) \
+        if submission in actions.keys() \
+        else {
+        "statusCode": 400,
+        "body": json.dumps({"text": "Something went wrong. Contest admin."})
+    }
+
+
+def slack_button_pressed_handler(payload):
+    action_id = payload['actions'][0]['action_id']
+    print('action id:', action_id)
+    if action_id == 'update_now_action':
+        channel_id = get_channel_from_action_button(payload)
+        print('update now action')
+        SLACK_CLIENT.views_open(
+            trigger_id=payload['trigger_id'],
+            view=get_update_modal(channel_id=channel_id)
+        )
+        update_slack_message(payload['response_url'], {'text': 'Thanks for updating!'})
+    if action_id == 'snooze_action':
+        print('update later action')
+        channel_id = get_channel_from_action_button(payload)
+        schedule_notification(
+            user=payload['user']['id'],
+            channel_id=channel_id,
+            post_at=int(payload['actions'][0]['action_ts'].split('.')[0]) + DEFAULT_SNOOZE_DELAY
+        )
+        update_slack_message(
+            response_url=payload['response_url'],
+            message={
+                "text": "Okay will remind you in an hour.",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Okay will remind you in an hour.\n"
+                                    "Or you can post update anytime with `/update` command"
+                        }
+                    }
+                ]
+            })
+    return {
+        "statusCode": 204
+    }
+
+
+def slack_checkboxes_action_handler(payload):
+    action_id = payload['actions'][0]['action_id']
+    if action_id == 'blocker-checkbox-action':
+        print('blocker checkbox action')
+        is_blocker = bool(payload['actions'][0]['selected_options'])
+        res = SLACK_CLIENT.views_update(
+            view_id=payload['view']['id'],
+            hash=payload['view']['hash'],
+            view=get_update_modal(
+                channel_id=payload['view']['blocks'][1]['text']['text'],
+                is_blocker=is_blocker
+            )
+        )
+        print('update view response', res)
+    return {
+        "statusCode": 204
+    }
+
+
+def slack_block_actions_handler(payload):
+    action_type = payload['actions'][0]['type']
+    actions = {
+        'button': slack_button_pressed_handler,
+        'checkboxes': slack_checkboxes_action_handler,
+        'number_input': check_project_id,
+        'multi_static_select': lambda x: {"statusCode": 200}
+    }
+    return actions.get(action_type, lambda x: {"statusCode": 400})(payload)
+
+
+def check_project_id(payload):
+    project_id = payload['actions'][0]['value']
+    url = f"{LOG1_URL}/engineering/{project_id}/?api_key={LOG1_API_KEY}"
+    res = requests.head(url=url)
+    print(res, res.status_code)
+    print(res.json())
+
+def initiate_project_update_function(payload):
+    lambda_client.invoke(
+        FunctionName=PROJECT_UPDATE_FUNCTION_NAME,
+        InvocationType='Event',
+        Payload=json.dumps(payload)
+    )
+    return {
+        "statusCode": 204
+    }
