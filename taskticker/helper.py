@@ -77,7 +77,6 @@ def get_setup_modal(channel_id: str) -> dict:
             blocks[9]['accessory']['initial_options'] = [
                 {'text': {'type': 'plain_text', 'text': day}, 'value': day}
                 for day in channel_details['days']]
-    print('message ::', message)
     return message
 
 

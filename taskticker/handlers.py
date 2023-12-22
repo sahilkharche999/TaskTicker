@@ -10,6 +10,7 @@ from helper import (
     slack_block_actions_handler
 )
 from scheduler_worker import send_notifications
+import time
 
 
 def update_handler(event: dict, context):
@@ -20,14 +21,25 @@ def update_handler(event: dict, context):
     :return: None
     """
     print("Update Event:", event)
+    start_time = time.time()
     post_project_update(event)
+    print("Time taken to post update:", time.time() - start_time)
 
 
 def lambda_handler(event: dict, context):
+    """
+    Lambda handler for the taskticker app
+    :param event:
+    :param context:
+    :return:
+    """
+    start_time = time.time()
+
     # If the event is from AWS Event Bridge, then it is a scheduled event
     if is_from_aws_event_bridge(event):
         print("AWS Event Bridge Event:", event)
         send_notifications()
+        print("Time taken :: Notifications:", time.time() - start_time)
         return
 
     # If the event is from Slack
@@ -37,19 +49,23 @@ def lambda_handler(event: dict, context):
         # If the event is a Slack Command
         if is_slack_command(body):
             print("Slack Command:", body)
-            return slack_command_handler(body)
+            res = slack_command_handler(body)
+            print("Time taken :: Slack command:", time.time() - start_time)
+            return res
+
 
         # If the event is a Slack Event
         else:
             payload = get_payload(body)
-            print("Slack Event, Payload:", payload)
-
+            print("Slack Event")
             action = payload.get('type')
 
             actions = {
                 'view_submission': slack_view_submit_handler,
                 'block_actions': slack_block_actions_handler,
             }
-            return actions.get(action, lambda x: {"statusCode": 400})(payload)
+            res = actions.get(action, lambda x: {"statusCode": 400})(payload)
+            print("Time taken :: Slack event:", time.time() - start_time)
+            return res
 
     return {"statusCode": 400}
