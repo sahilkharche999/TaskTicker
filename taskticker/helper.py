@@ -269,7 +269,7 @@ def post_message_as_user(channel_id: str, message_blocks: list, user_id: str):
             text="Update posted!",
             blocks=message_blocks,
             # as_user=False,
-            username=user_details['profile']['display_name'],
+            username=user_details['profile'].get('real_name'),
             icon_url=user_details['profile'].get('image_original'),
         )
     else:
