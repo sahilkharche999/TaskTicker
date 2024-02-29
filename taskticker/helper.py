@@ -6,7 +6,7 @@ import requests
 from slack_sdk.errors import SlackApiError
 
 from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS, DEFAULT_SNOOZE_DELAY, \
-    PROJECT_UPDATE_FUNCTION_NAME
+    PROJECT_UPDATE_FUNCTION_NAME, UPDATE_LOG_Table
 from scheduler_worker import schedule_notification
 
 import boto3
@@ -20,6 +20,10 @@ def is_from_slack(event: dict) -> bool:
 
 def is_from_aws_event_bridge(event: dict) -> bool:
     return event.get('source') == 'aws.events'
+
+
+def is_cleanup_event(event: dict) -> bool:
+    return event.get('detail', {}).get('trigger_type', '') == 'CLEANUP_EVENT'
 
 
 def is_slack_command(body: dict) -> bool:
@@ -296,27 +300,29 @@ def retrieve_channel_details(payload: dict):
 
 def post_project_update(payload):
     update = retrieve_update_details(payload)
+    channel_id = payload['view']['blocks'][1]['text']['text']
     details = DYNAMO_MAPPING_DB_Table.get_item(
         Key={
-            'channel_id': payload['view']['blocks'][1]['text']['text']
+            'channel_id': channel_id
         }
     ).get('Item', {})
     print('details', details)
-    res = post_updates_to_log1(
-        project_id=details['project_id'],
-        update=update['update'],
-        sprint_start=date.today(),
-        sprint_end=date.today(),
-        blocker=update['blocker']
-    )
-    print('log1 response', res)
-    res = post_updates_to_slack(
-        channel_id=payload['view']['blocks'][1]['text']['text'],
-        user={'id': payload['user']['id'], 'username': payload['user']['username']},
-        update=update['update'],
-        blocker=update['blocker']
-    )
-    print('slack response', res)
+    # res = post_updates_to_log1(
+    #     project_id=details['project_id'],
+    #     update=update['update'],
+    #     sprint_start=date.today(),
+    #     sprint_end=date.today(),
+    #     blocker=update['blocker']
+    # )
+    # print('log1 response', res)
+    delete_record_from_update_log_table(channel_id)
+    # res = post_updates_to_slack(
+    #     channel_id=payload['view']['blocks'][1]['text']['text'],
+    #     user={'id': payload['user']['id'], 'username': payload['user']['username']},
+    #     update=update['update'],
+    #     blocker=update['blocker']
+    # )
+    # print('slack response', res)
     return {
         "statusCode": 204
     }
@@ -449,6 +455,7 @@ def check_project_id(payload):
     print(res, res.status_code)
     print(res.json())
 
+
 def initiate_project_update_function(payload):
     lambda_client.invoke(
         FunctionName=PROJECT_UPDATE_FUNCTION_NAME,
@@ -458,3 +465,12 @@ def initiate_project_update_function(payload):
     return {
         "statusCode": 204
     }
+
+
+def delete_record_from_update_log_table(channel_id):
+    UPDATE_LOG_Table.delete_item(
+        Key={
+            'channel_id': channel_id
+        }
+    )
+    print(f'Delete record function called with channel_id : {channel_id}')

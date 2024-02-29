@@ -9,7 +9,7 @@ from helper import (
     slack_view_submit_handler,
     slack_block_actions_handler
 )
-from scheduler_worker import send_notifications
+from scheduler_worker import send_notifications, clean_up_update_log_table
 import time
 
 
@@ -38,7 +38,8 @@ def lambda_handler(event: dict, context):
     # If the event is from AWS Event Bridge, then it is a scheduled event
     if is_from_aws_event_bridge(event):
         print("AWS Event Bridge Event:", event)
-        send_notifications()
+        # send_notifications()
+        clean_up_update_log_table()
         print("Time taken :: Notifications:", time.time() - start_time)
         return
 

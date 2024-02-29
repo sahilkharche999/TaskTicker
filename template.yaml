@@ -34,6 +34,21 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  UpdateLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub
+        - 'TaskTickerUpdateLog-${Env}'
+        - Env: !Ref Environment
+      DeletionProtectionEnabled: true
+      AttributeDefinitions:
+        - AttributeName: channel_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: channel_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
   ProjectUpdateFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -43,6 +58,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ChannelMappingTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UpdateLogTable
         - SSMParameterReadPolicy:
             ParameterName: taskticker-*
       Environment:
@@ -50,11 +67,11 @@ Resources:
           ENV: !Ref Environment
           CHANNEL_MAPPING_TABLE_NAME: !Ref ChannelMappingTable
           LOG1_URL: !Ref Log1Url
+          UPDATE_LOG_TABLE_NAME: !Ref UpdateLogTable
       Architectures:
         - x86_64
       Layers:
         - Ref: libs
-
 
   TaskTickerFunction:
     Type: AWS::Serverless::Function
@@ -65,6 +82,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ChannelMappingTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UpdateLogTable
         - SSMParameterReadPolicy:
             ParameterName: taskticker-*
         - LambdaInvokePolicy:
@@ -75,6 +94,7 @@ Resources:
           CHANNEL_MAPPING_TABLE_NAME: !Ref ChannelMappingTable
           LOG1_URL: !Ref Log1Url
           PROJECT_UPDATE_FUNCTION_NAME: !Ref ProjectUpdateFunction
+          UPDATE_LOG_TABLE_NAME: !Ref UpdateLogTable
       Architectures:
         - x86_64
       Events:
@@ -89,6 +109,16 @@ Resources:
             State: ENABLED
             Schedule: 'cron(0 14 * * ? *)' # UTC 14:00 & IST 19:30
             Description: Daily Update Schedule
+            Input:
+              trigger_type: UPDATES_REMINDER
+        cleanupEvent:
+          Type: Schedule
+          Properties:
+            State: ENABLED
+            Schedule: 'cron(30 21 * * ? *)' # UTC 21:30 & IST 3:00
+            Description: Update log cleanup schedule
+            Input:
+              trigger_type: CLEANUP_EVENT
       Layers:
       - Ref: libs
   libs:
