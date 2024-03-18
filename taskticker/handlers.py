@@ -9,7 +9,7 @@ from helper import (
     slack_view_submit_handler,
     slack_block_actions_handler
 )
-from scheduler_worker import send_notifications
+from scheduler_worker import send_notifications, send_standup_notifications
 import time
 
 
@@ -39,6 +39,52 @@ def lambda_handler(event: dict, context):
     if is_from_aws_event_bridge(event):
         print("AWS Event Bridge Event:", event)
         send_notifications()
+        print("Time taken :: Notifications:", time.time() - start_time)
+        return
+
+    # If the event is from Slack
+    if is_from_slack(event):
+        body = parse_slack_event_body(event)
+
+        # If the event is a Slack Command
+        if is_slack_command(body):
+            print("Slack Command:", body)
+            res = slack_command_handler(body)
+            print("Time taken :: Slack command:", time.time() - start_time)
+            return res
+
+
+        # If the event is a Slack Event
+        else:
+            payload = get_payload(body)
+            print("Slack Event")
+            action = payload.get('type')
+
+            actions = {
+                'view_submission': slack_view_submit_handler,
+                'block_actions': slack_block_actions_handler,
+            }
+            res = actions.get(action, lambda x: {"statusCode": 400})(payload)
+            print("Time taken :: Slack event:", time.time() - start_time)
+            return res
+
+    return {"statusCode": 400}
+
+
+def standup_handler(event: dict, context):
+    """
+    Handler for the standup update event
+    :param event: payload from the event
+    :param context: lambda context
+    :return: None
+    """
+    print("Standup Update Event:", event)
+    start_time = time.time()
+
+    # If the event is from AWS Event Bridge, then it is a scheduled event
+    if is_from_aws_event_bridge(event):
+        print("AWS Event Bridge Event:", event)
+        send_standup_notifications()
         print("Time taken :: Notifications:", time.time() - start_time)
         return
 

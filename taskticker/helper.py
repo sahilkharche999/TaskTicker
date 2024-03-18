@@ -5,8 +5,8 @@ from urllib.parse import parse_qs
 import requests
 from slack_sdk.errors import SlackApiError
 
-from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS, DEFAULT_SNOOZE_DELAY, \
-    PROJECT_UPDATE_FUNCTION_NAME
+from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, DYNAMO_STANDUP_UPDATE_DB_Table, \
+    ADMIN_USERS, DEFAULT_SNOOZE_DELAY, PROJECT_UPDATE_FUNCTION_NAME
 from scheduler_worker import schedule_notification
 
 import boto3
@@ -92,6 +92,18 @@ def get_update_modal(channel_id: str, is_blocker: bool = False) -> dict:
     return message
 
 
+def get_standup_update_modal(channel_id: str, is_blocker: bool = False) -> dict:
+    message = json.load(open('templates/standup_update_modal.json'))['with' if is_blocker else 'without']
+    message['blocks'].insert(1, {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": channel_id
+        }
+    })
+    return message
+
+
 def get_channel_from_action_button(payload: dict) -> str:
     return payload['actions'][0]['value']
 
@@ -107,6 +119,15 @@ def retrieve_project_details(payload: dict) -> dict:
         'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
     }
 
+def retrieve_channel_details(payload: dict) -> dict:
+    state_values = payload['view']['state']['values'].values()
+    values = {key: val for state in state_values for key, val in state.items()}
+    return {
+        'channel_id': payload['view']['blocks'][1]['text']['text'],
+        'user_id': values['user_select-action']['selected_user'],
+        'scrum_id': values['scrum_select-action']['selected_user'],
+        'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
+    }
 
 def retrieve_update_details(payload: dict) -> dict:
     state_values = payload['view']['state']['values'].values()
@@ -134,6 +155,60 @@ def validate_channel_details(details: dict):
 
 def save_to_db(payload: dict):
     details = retrieve_project_details(payload)
+    if errors := validate_channel_details(details):
+        return errors
+    res = DYNAMO_MAPPING_DB_Table.put_item(
+        Item=details
+    )
+    if res.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
+        SLACK_CLIENT.chat_postEphemeral(
+            channel=details['channel_id'],
+            user=payload['user']['id'],
+            text="Project setup complete!",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Project setup complete!"
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Engineer:*\n<@{details['user_id']}>"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Scrum:*\n<@{details['scrum_id']}>"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Project ID:*\n{details['project_id']}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Days:*\n{', '.join(details['days'])}"
+                        }
+                    ]
+                }
+            ]
+        )
+    else:
+        SLACK_CLIENT.chat_postEphemeral(
+            channel=details['channel_id'],
+            user=payload['user']['id'],
+            text="Something went wrong. Please try again."
+        )
+    return {
+        "statusCode": 200
+    }
+
+
+def save_to_standup_db(payload: dict):
+    details = retrieve_channel_details(payload)
     if errors := validate_channel_details(details):
         return errors
     res = DYNAMO_MAPPING_DB_Table.put_item(
@@ -322,6 +397,34 @@ def post_project_update(payload):
     }
 
 
+def post_project_standup_update(payload):
+    update = retrieve_update_details(payload)
+    details = DYNAMO_STANDUP_UPDATE_DB_Table.get_item(
+        Key={
+            'channel_id': payload['view']['blocks'][1]['text']['text']
+        }
+    ).get('Item', {})
+    print('details', details)
+    # res = post_updates_to_log1(
+    #     project_id=details['project_id'],
+    #     update=update['update'],
+    #     sprint_start=date.today(),
+    #     sprint_end=date.today(),
+    #     blocker=update['blocker']
+    # )
+    # print('log1 response', res)
+    res = post_updates_to_slack(
+        channel_id=payload['view']['blocks'][1]['text']['text'],
+        user={'id': payload['user']['id'], 'username': payload['user']['username']},
+        update=update['update'],
+        blocker=update['blocker']
+    )
+    print('slack response', res)
+    return {
+        "statusCode": 204
+    }
+
+
 def validate_command(body: dict) -> bool:
     return body['user_id'][0] in ADMIN_USERS \
         if body['command'][0] in ['/setup'] \
@@ -332,7 +435,8 @@ def slack_command_handler(body: dict):
     if validate_command(body):
         models = {
             '/setup': get_setup_modal,
-            '/update': get_update_modal
+            '/update': get_update_modal,
+            '/standup': get_standup_update_modal
         }
         trigger_id = body['trigger_id'][0]
         command = body['command'][0]
@@ -369,7 +473,26 @@ def slack_view_submit_handler(payload):
         if submission in actions.keys() \
         else {
         "statusCode": 400,
-        "body": json.dumps({"text": "Something went wrong. Contest admin."})
+        "body": json.dumps({"text": "Something went wrong. Contact admin."})
+    }
+
+
+def slack_view_submit_handler(payload):
+    """
+    Handler for slack view submission
+    :param payload: payload
+    :return: response dict
+    """
+    submission = get_submission_type(payload)
+    actions = {
+        'project_setup_view': save_to_standup_db,
+        'project_update_view': initiate_project_update_function
+    }
+    return actions[submission](payload) \
+        if submission in actions.keys() \
+        else {
+        "statusCode": 400,
+        "body": json.dumps({"text": "Something went wrong. Contact admin."})
     }
 
 

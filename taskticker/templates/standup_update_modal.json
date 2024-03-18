@@ -1,0 +1,68 @@
+{
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "Standup Updates",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"block_id": "project_update_text",
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"multiline": true,
+				"action_id": "project-update-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Updates :",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"block_id": "project_update_checkbox",
+			"text": {
+				"type": "mrkdwn",
+				"text": " "
+			},
+			"accessory": {
+				"type": "checkboxes",
+				"options": [
+					{
+						"text": {
+							"type": "mrkdwn",
+							"text": "*Blockers?*"
+						}
+					}
+				],
+				"action_id": "blocker-checkbox-action"
+			}
+		},
+		{
+			"block_id": "project_update_blocker",
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"multiline": true,
+				"action_id": "blocker_input-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Blockers",
+				"emoji": true
+			}
+		}
+	]
+}

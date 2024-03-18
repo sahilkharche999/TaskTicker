@@ -34,6 +34,53 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  StandupUpdateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub
+        - 'TaskTickerStandupUpdate-${Env}'
+        - Env: !Ref Environment
+      DeletionProtectionEnabled: true
+      AttributeDefinitions:
+        - AttributeName: channel_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: channel_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  StandupUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: taskticker/
+      Handler: handlers.standup_handler
+      Runtime: python3.9
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StandupUpdateTable
+        - SSMParameterReadPolicy:
+            ParameterName: taskticker-*
+      Environment:
+        Variables:
+          ENV: !Ref Environment
+          STANDUP_UPDATE_TABLE_NAME: !Ref StandupUpdateTable
+      Architectures:
+        - x86_64
+      Events:
+        mainApi:
+          Type: Api
+          Properties:
+            Path: /app
+            Method: post
+        crudEvent:
+          Type: Schedule
+          Properties:
+            State: ENABLED
+            Schedule: 'cron(0 14 * * ? *)' # UTC 14:00 & IST 19:30
+            Description: Daily Standup Update Schedule
+      Layers:
+        - Ref: libs
+
   ProjectUpdateFunction:
     Type: AWS::Serverless::Function
     Properties:
