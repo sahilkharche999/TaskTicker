@@ -11,6 +11,13 @@ def get_updates_reminder_message(channel_id: str) -> dict:
         button['value'] = channel_id
     return message
 
+
+def get_standup_reminder_message(channel_id: str) -> dict:
+    message = json.load(open('templates/standup_update_reminder.json'))
+    for button in message[2]['elements']:
+        button['value'] = channel_id
+    return message
+
 def send_notifications():
     week_day = date.today().strftime('%A').upper()
     projects = DYNAMO_MAPPING_DB_Table.scan(
@@ -49,7 +56,7 @@ def send_standup_notifications():
         for user in channel['users']:
             print("User id :", user)
             try:
-                blocks = get_updates_reminder_message(channel_id=channel['channel_id'])
+                blocks = get_standup_reminder_message(channel_id=channel['channel_id'])
                 # post ephemeral message to slack with metadata
                 res = SLACK_CLIENT.chat_postEphemeral(
                     channel=channel['channel_id'],
@@ -69,6 +76,28 @@ def schedule_notification(user: str, post_at: int, channel_id: str):
             "text": {
                 "type": "mrkdwn",
                 "text": f"Hi again, Reminding you to post update in <#{channel_id}>!",
+            }
+        }
+        res = SLACK_CLIENT.chat_scheduleMessage(
+            text="Hi again!",
+            blocks=blocks,
+            post_at=post_at,
+            channel=user
+        )
+        print('scheduleMessage response: ', res)
+
+    except SlackApiError as e:
+        print(f'Error occurred in sending message : {e}')
+
+
+def schedule_standup_notification(user: str, post_at: int, channel_id: str):
+    try:
+        blocks = get_standup_reminder_message(channel_id=channel_id)
+        blocks[1] = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi again, Reminding you to post standup update in <#{channel_id}>!",
             }
         }
         res = SLACK_CLIENT.chat_scheduleMessage(

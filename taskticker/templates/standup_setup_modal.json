@@ -1,0 +1,134 @@
+{
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "TaskTicker"
+	},
+	"private_metadata": "standup_setup_view",
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit"
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel"
+	},
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Standup Update Channel Settings"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
+			}
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "multi_users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select engineers"
+				},
+				"action_id": "multi_users_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Select the Slack handler of engineers :"
+			},
+			"block_id": "multi_users_select_input"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
+			}
+		},
+		{
+			"type": "input",
+			"element": {
+				"type": "users_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select scrum"
+				},
+				"action_id": "scrum_select-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Select the Slack handler of engineer's scrum :"
+			},
+			"block_id": "scrum_select_input"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\n\n"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Select day frequency of updates"
+			},
+			"accessory": {
+				"type": "multi_static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select days"
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "MONDAY"
+						},
+						"value": "MONDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "TUESDAY"
+						},
+						"value": "TUESDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "WEDNESDAY"
+						},
+						"value": "WEDNESDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "THURSDAY"
+						},
+						"value": "THURSDAY"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "FRIDAY"
+						},
+						"value": "FRIDAY"
+					}
+				],
+				"action_id": "frequency_select-action"
+			},
+			"block_id": "frequency_select_input"
+		}
+	]
+}

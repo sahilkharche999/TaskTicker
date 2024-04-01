@@ -1,0 +1,42 @@
+[
+  {
+    "type": "header",
+    "text": {
+      "type": "plain_text",
+      "text": "Standup Updates Reminder"
+    }
+  },
+  {
+    "type": "section",
+    "text": {
+      "type": "plain_text",
+      "text": "Here to help you posting standup updates for your project, when you want do it.",
+      "emoji": true
+    }
+  },
+  {
+    "type": "actions",
+    "elements": [
+      {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Now"
+        },
+        "style": "primary",
+        "action_id": "standup_update_now_action"
+      },
+      {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Snooze"
+        },
+        "style": "danger",
+        "action_id": "standup_snooze_action"
+      }
+    ]
+  }
+]
