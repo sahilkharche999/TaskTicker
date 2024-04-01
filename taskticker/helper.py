@@ -493,7 +493,7 @@ def slack_command_handler(body: dict):
         models = {
             '/setup': get_setup_modal,
             '/update': get_update_modal,
-            '/standup-setup': get_standup_setup_modal(),
+            '/standup-setup': get_standup_setup_modal,
             '/standup-update': get_standup_update_modal
         }
         trigger_id = body['trigger_id'][0]
