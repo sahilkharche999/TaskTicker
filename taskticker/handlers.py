@@ -7,7 +7,7 @@ from helper import (
     parse_slack_event_body,
     is_from_aws_event_bridge,
     slack_view_submit_handler,
-    slack_block_actions_handler
+    slack_block_actions_handler, initiate_project_update
 )
 from scheduler_worker import send_notifications
 import time
@@ -57,7 +57,7 @@ def lambda_handler(event: dict, context):
         # If the event is a Slack Event
         else:
             payload = get_payload(body)
-            print("Slack Event")
+            print("Slack Event payload: ", payload)
             action = payload.get('type')
 
             actions = {
@@ -69,3 +69,4 @@ def lambda_handler(event: dict, context):
             return res
 
     return {"statusCode": 400}
+

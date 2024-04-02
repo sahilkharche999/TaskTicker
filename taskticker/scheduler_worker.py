@@ -13,26 +13,40 @@ def get_updates_reminder_message(channel_id: str) -> dict:
 
 def send_notifications():
     week_day = date.today().strftime('%A').upper()
-    projects = DYNAMO_MAPPING_DB_Table.scan(
+    channels = DYNAMO_MAPPING_DB_Table.scan(
         FilterExpression="contains (days, :week_day)",
         ExpressionAttributeValues={
             ":week_day": week_day
         }
     ).get('Items', [])
 
-    for project in projects:
-        print("project -> ", project)
-        try:
-            blocks = get_updates_reminder_message(channel_id=project['channel_id'])
-            # post ephemeral message to slack with metadata
-            res = SLACK_CLIENT.chat_postEphemeral(
-                channel=project['channel_id'],
-                user=project['user_id'],
-                text="Reminder to update your tasks for today!",
-                blocks=blocks)
-            print(res)
-        except SlackApiError as e:
-            print(f'Error occurred in sending message : {e} --- channel id : {project["channel_id"]}')
+    for channel in channels:
+        print("channel -> ", channel)
+        if channel['channel_type'] == 'standup':
+            for user in channel['user_ids']:
+                try:
+                    blocks = get_updates_reminder_message(channel_id=channel['channel_id'])
+                    # post ephemeral message to slack with metadata
+                    res = SLACK_CLIENT.chat_postEphemeral(
+                        channel=channel['channel_id'],
+                        user=user,
+                        text="Reminder to post update on your tasks for today!",
+                        blocks=blocks)
+                    print(res)
+                except SlackApiError as e:
+                    print(f'Error occurred in sending message : {e} --- channel id : {channel["channel_id"]}')
+        else:
+            try:
+                blocks = get_updates_reminder_message(channel_id=channel['channel_id'])
+                # post ephemeral message to slack with metadata
+                res = SLACK_CLIENT.chat_postEphemeral(
+                    channel=channel['channel_id'],
+                    user=channel['user_id'],
+                    text="Reminder to post update on your tasks for today!",
+                    blocks=blocks)
+                print(res)
+            except SlackApiError as e:
+                print(f'Error occurred in sending message : {e} --- channel id : {channel["channel_id"]}')
 
 
 def schedule_notification(user: str, post_at: int, channel_id: str):

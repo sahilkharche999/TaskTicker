@@ -30,7 +30,6 @@
 				"type": "mrkdwn",
 				"text": "Select type of Channel"
 			},
-			"block_id": "channel_type_input",
 			"accessory": {
 				"type": "static_select",
 				"placeholder": {
@@ -41,10 +40,10 @@
 				"initial_option": {
 					"text": {
 						"type": "plain_text",
-						"text": "Project :taskticker-person:",
+						"text": "Standup :taskticker-team:",
 						"emoji": true
 					},
-					"value": "project"
+					"value": "standup"
 				},
 				"options": [
 					{
@@ -68,30 +67,6 @@
 			}
 		},
 		{
-			"type": "input",
-			"dispatch_action": true,
-			"element": {
-				"type": "number_input",
-				"is_decimal_allowed": false,
-				"min_value": "1",
-				"action_id": "project_id-action",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "Project ID"
-				},
-				"dispatch_action_config": {
-					"trigger_actions_on": [
-						"on_enter_pressed"
-					]
-				}
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "Enter the project ID from Log1 :"
-			},
-			"block_id": "project_id_input"
-		},
-		{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
@@ -101,18 +76,18 @@
 		{
 			"type": "input",
 			"element": {
-				"type": "users_select",
+				"type": "multi_users_select",
 				"placeholder": {
 					"type": "plain_text",
 					"text": "Select engineer"
 				},
-				"action_id": "user_select-action"
+				"action_id": "users_select-action"
 			},
 			"label": {
 				"type": "plain_text",
-				"text": "Select the Slack handler of engineer :"
+				"text": "Select the Slack handler of engineers :"
 			},
-			"block_id": "user_select_input"
+			"block_id": "users_select_input"
 		},
 		{
 			"type": "section",
