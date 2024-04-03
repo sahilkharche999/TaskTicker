@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import parse_qs
 
 import requests
@@ -10,6 +10,8 @@ from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table
 from scheduler_worker import schedule_notification
 
 import boto3
+
+from ui_tools import create_setup_complete_message
 
 lambda_client = boto3.client('lambda')
 
@@ -54,29 +56,56 @@ def update_slack_message(response_url: str, message: dict) -> None:
     )
 
 
-def get_setup_modal(channel_id: str) -> dict:
-    message = json.load(open('templates/setup_modal.json'))
-    message['blocks'].insert(1, {
-        "type": "section",
-        "text": {
-            "type": "plain_text",
-            "text": channel_id
-        }
-    })
+def get_setup_modal(channel_id: str, channel_type: str = 'project', is_update_view: bool = False) -> dict:
     channel_details = fetch_channel_details(channel_id)
-    if channel_details:
+    final_channel_type = channel_type if is_update_view else channel_details.get('channel_type', channel_type)
+
+    if final_channel_type == 'standup':
+        message = json.load(open('templates/setup_standup_modal.json'))
+        # message = json.load(open('taskticker/templates/setup_standup_modal.json'))
         blocks = message['blocks']
-        # Project ID
-        blocks[3]['element']['initial_value'] = str(channel_details['project_id'])
-        # Engineer
-        blocks[5]['element']['initial_user'] = channel_details['user_id']
-        # Scrum
-        blocks[7]['element']['initial_user'] = channel_details['scrum_id']
-        # Days
-        if channel_details['days']:
-            blocks[9]['accessory']['initial_options'] = [
-                {'text': {'type': 'plain_text', 'text': day}, 'value': day}
-                for day in channel_details['days']]
+        message['blocks'].insert(1, {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": channel_id
+            }
+        })
+        if channel_details and channel_details.get('channel_type') == 'standup':
+            # users
+            blocks[5]['element']['initial_users'] = channel_details['user_ids']
+            # Scrum
+            blocks[7]['element']['initial_user'] = channel_details['scrum_id']
+            # Days
+            if channel_details['days']:
+                blocks[9]['accessory']['initial_options'] = [
+                    {'text': {'type': 'plain_text', 'text': day}, 'value': day}
+                    for day in channel_details['days']]
+    else:
+        message = json.load(open('templates/setup_modal.json'))
+        # message = json.load(open('taskticker/templates/setup_modal.json'))
+        blocks = message['blocks']
+        message['blocks'].insert(1, {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": channel_id
+            }
+        })
+        if channel_details and channel_details.get('channel_type') == 'project':
+            # Project ID
+            if channel_details.get('project_id'):
+                blocks[4]['element']['initial_value'] = str(channel_details['project_id'])
+            # Engineer
+            blocks[6]['element']['initial_user'] = channel_details['user_id']
+            # Scrum
+            blocks[8]['element']['initial_user'] = channel_details['scrum_id']
+            # Days
+            if channel_details['days']:
+                blocks[10]['accessory']['initial_options'] = [
+                    {'text': {'type': 'plain_text', 'text': day}, 'value': day}
+                    for day in channel_details['days']]
+
     return message
 
 
@@ -96,13 +125,24 @@ def get_channel_from_action_button(payload: dict) -> str:
     return payload['actions'][0]['value']
 
 
-def retrieve_project_details(payload: dict) -> dict:
+def retrieve_setup_details(payload: dict) -> dict:
     state_values = payload['view']['state']['values'].values()
     values = {key: val for state in state_values for key, val in state.items()}
+    channel_type = values['channel_type_select-action']['selected_option']['value']
+
+    if channel_type == 'project':
+        return {
+            'channel_type': channel_type,
+            'channel_id': payload['view']['blocks'][1]['text']['text'],
+            'project_id': int(values['project_id-action']['value']),
+            'user_id': values['user_select-action']['selected_user'],
+            'scrum_id': values['scrum_select-action']['selected_user'],
+            'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
+        }
     return {
+        'channel_type': channel_type,
         'channel_id': payload['view']['blocks'][1]['text']['text'],
-        'project_id': int(values['project_id-action']['value']),
-        'user_id': values['user_select-action']['selected_user'],
+        'user_ids': values['users_select-action']['selected_users'],
         'scrum_id': values['scrum_select-action']['selected_user'],
         'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
     }
@@ -110,8 +150,10 @@ def retrieve_project_details(payload: dict) -> dict:
 
 def retrieve_update_details(payload: dict) -> dict:
     state_values = payload['view']['state']['values'].values()
+    update_type = payload['view']['private_metadata']
     values = {key: val for state in state_values for key, val in state.items()}
     return {
+        'update_type': update_type,
         'update': values['project-update-action']['value'],
         'blocker': values.get('blocker_input-action', {}).get('value'),
     }
@@ -133,9 +175,10 @@ def validate_channel_details(details: dict):
 
 
 def save_to_db(payload: dict):
-    details = retrieve_project_details(payload)
-    if errors := validate_channel_details(details):
-        return errors
+    details = retrieve_setup_details(payload)
+    # input validations
+    # if errors := validate_channel_details(details):
+    #     return errors
     res = DYNAMO_MAPPING_DB_Table.put_item(
         Item=details
     )
@@ -143,37 +186,8 @@ def save_to_db(payload: dict):
         SLACK_CLIENT.chat_postEphemeral(
             channel=details['channel_id'],
             user=payload['user']['id'],
-            text="Project setup complete!",
-            blocks=[
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Project setup complete!"
-                    }
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Engineer:*\n<@{details['user_id']}>"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Scrum:*\n<@{details['scrum_id']}>"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Project ID:*\n{details['project_id']}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Days:*\n{', '.join(details['days'])}"
-                        }
-                    ]
-                }
-            ]
+            text="Channel setup complete!",
+            blocks=create_setup_complete_message(details)
         )
     else:
         SLACK_CLIENT.chat_postEphemeral(
@@ -281,7 +295,7 @@ def fetch_channel_details(channel_id: str):
         Key={
             'channel_id': channel_id
         }
-    ).get('Item')
+    ).get('Item', {})
 
 
 def retrieve_channel_details(payload: dict):
@@ -363,7 +377,7 @@ def slack_view_submit_handler(payload):
     submission = get_submission_type(payload)
     actions = {
         'project_setup_view': save_to_db,
-        'project_update_view': initiate_project_update_function
+        'project_update_view': initiate_project_update
     }
     return actions[submission](payload) \
         if submission in actions.keys() \
@@ -431,13 +445,34 @@ def slack_checkboxes_action_handler(payload):
     }
 
 
+def switch_channel_type(payload):
+    action_id = payload['actions'][0]['action_id']
+    if action_id == 'channel_type_select-action':
+        selected_option = payload['actions'][0]['selected_option']['value']
+        print('switching view to', selected_option)
+        res = SLACK_CLIENT.views_update(
+            view_id=payload['view']['id'],
+            hash=payload['view']['hash'],
+            view=get_setup_modal(
+                channel_id=payload['view']['blocks'][1]['text']['text'],
+                channel_type=selected_option,
+                is_update_view=True
+            )
+        )
+        print('update view response', res)
+    return {
+        "statusCode": 204
+    }
+
+
 def slack_block_actions_handler(payload):
     action_type = payload['actions'][0]['type']
     actions = {
         'button': slack_button_pressed_handler,
         'checkboxes': slack_checkboxes_action_handler,
         'number_input': check_project_id,
-        'multi_static_select': lambda x: {"statusCode": 200}
+        'static_select': switch_channel_type,
+        'multi_static_select': lambda x: {"statusCode": 200},
     }
     return actions.get(action_type, lambda x: {"statusCode": 400})(payload)
 
@@ -449,12 +484,29 @@ def check_project_id(payload):
     print(res, res.status_code)
     print(res.json())
 
-def initiate_project_update_function(payload):
-    lambda_client.invoke(
-        FunctionName=PROJECT_UPDATE_FUNCTION_NAME,
-        InvocationType='Event',
-        Payload=json.dumps(payload)
-    )
-    return {
-        "statusCode": 204
-    }
+
+def initiate_project_update(payload):
+    print('initiating project update', payload)
+    details = retrieve_update_details(payload)
+    channel_id = payload['view']['blocks'][1]['text']['text']
+    channel_details = fetch_channel_details(channel_id)
+    if channel_details['channel_type'] == 'project':
+        lambda_client.invoke(
+            FunctionName=PROJECT_UPDATE_FUNCTION_NAME,
+            InvocationType='Event',
+            Payload=json.dumps(payload)
+        )
+        return {
+            "statusCode": 204
+        }
+    else:
+        print('posting update to slack')
+        post_updates_to_slack(
+            channel_id=channel_id,
+            user={'id': payload['user']['id'], 'username': payload['user']['username']},
+            update=details['update'],
+            blocker=details['blocker']
+        )
+        return {
+            "statusCode": 204
+        }
