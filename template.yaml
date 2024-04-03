@@ -83,12 +83,20 @@ Resources:
           Properties:
             Path: /app
             Method: post
-        crudEvent:
+        ProjectSchedule:
           Type: Schedule
           Properties:
             State: ENABLED
             Schedule: 'cron(0 14 * * ? *)' # UTC 14:00 & IST 19:30
-            Description: Daily Update Schedule
+            Description: Project Schedule
+            Input: '{"event_for": "project", "source": "aws.events"}'
+        StandupSchedule:
+          Type: Schedule
+          Properties:
+            State: ENABLED
+            Schedule: 'cron(0 13 * * ? *)' # UTC 13:00 & IST 18:30
+            Description: Standup Schedule
+            Input: '{"event_for": "standup", "source": "aws.events"}'
       Layers:
       - Ref: libs
   libs:
