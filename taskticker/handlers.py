@@ -38,7 +38,7 @@ def lambda_handler(event: dict, context):
     # If the event is from AWS Event Bridge, then it is a scheduled event
     if is_from_aws_event_bridge(event):
         print("AWS Event Bridge Event:", event)
-        send_notifications()
+        send_notifications(event['event_for'])
         print("Time taken :: Notifications:", time.time() - start_time)
         return
 

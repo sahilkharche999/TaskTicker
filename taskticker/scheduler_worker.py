@@ -11,12 +11,17 @@ def get_updates_reminder_message(channel_id: str) -> dict:
         button['value'] = channel_id
     return message
 
-def send_notifications():
+def send_notifications(channel_type: str):
     week_day = date.today().strftime('%A').upper()
+    if channel_type == 'standup':
+        filter_expression = "contains (days, :week_day) AND channel_type = :channel_type"
+    else:
+        filter_expression = "contains (days, :week_day) AND channel_type <> :channel_type"
     channels = DYNAMO_MAPPING_DB_Table.scan(
-        FilterExpression="contains (days, :week_day)",
+        FilterExpression=filter_expression,
         ExpressionAttributeValues={
-            ":week_day": week_day
+            ":week_day": week_day,
+            ":channel_type": "standup"
         }
     ).get('Items', [])
 
