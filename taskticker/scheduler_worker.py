@@ -11,6 +11,7 @@ def get_updates_reminder_message(channel_id: str) -> dict:
         button['value'] = channel_id
     return message
 
+
 def send_notifications(channel_type: str):
     week_day = date.today().strftime('%A').upper()
     if channel_type == 'standup':

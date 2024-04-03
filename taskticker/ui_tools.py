@@ -1,6 +1,5 @@
-import json
 
-def create_setup_complete_message(details:dict):
+def create_setup_complete_message(details: dict):
     blocks = [
         {
             "type": "section",

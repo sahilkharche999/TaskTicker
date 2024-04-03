@@ -57,7 +57,7 @@ def lambda_handler(event: dict, context):
         # If the event is a Slack Event
         else:
             payload = get_payload(body)
-            print("Slack Event payload: ", payload)
+            print("Slack Event payload: ")
             action = payload.get('type')
 
             actions = {
