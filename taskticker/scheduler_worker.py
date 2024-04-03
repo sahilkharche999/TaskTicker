@@ -28,7 +28,7 @@ def send_notifications(channel_type: str):
 
     for channel in channels:
         print("channel -> ", channel)
-        if channel['channel_type'] == 'standup':
+        if channel.get('channel_type') == 'standup':
             for user in channel['user_ids']:
                 try:
                     blocks = get_updates_reminder_message(channel_id=channel['channel_id'])
