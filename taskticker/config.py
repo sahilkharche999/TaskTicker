@@ -8,7 +8,8 @@ LOG1_URL = os.environ.get('LOG1_URL')
 ENV = os.environ.get('ENV', 'dev')
 ssm_client = boto3.client('ssm')
 DEFAULT_SNOOZE_DELAY = 60 * 60
-
+KARTIK_USER = 'U03KRQ8R7GA'
+ADARSH_USER = 'U03LRVDTS4C'
 
 def fetch_config() -> dict:
     try:
@@ -22,7 +23,7 @@ def fetch_config() -> dict:
 
 
 app_config = fetch_config()
-SLACK_CLIENT = WebClient(token=app_config.get('slack-bot-oauth-token'))
+SLACK_CLIENT = WebClient(token='xoxb-7022440474694-7052060948256-L8UiWayN8J9kBEVZk2Aoyh1H')
 ADMIN_USERS = app_config.get('admins')
 DYNAMO_MAPPING_DB_Table = boto3.resource('dynamodb').Table(os.environ.get('CHANNEL_MAPPING_TABLE_NAME'))
 PROJECT_UPDATE_FUNCTION_NAME = os.environ.get('PROJECT_UPDATE_FUNCTION_NAME')

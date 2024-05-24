@@ -6,7 +6,7 @@ import requests
 from slack_sdk.errors import SlackApiError
 
 from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS, DEFAULT_SNOOZE_DELAY, \
-    PROJECT_UPDATE_FUNCTION_NAME
+    PROJECT_UPDATE_FUNCTION_NAME, KARTIK_USER, ADARSH_USER
 from scheduler_worker import schedule_notification
 
 import boto3
@@ -137,7 +137,8 @@ def retrieve_setup_details(payload: dict) -> dict:
             'project_id': int(values['project_id-action']['value']),
             'user_id': values['user_select-action']['selected_user'],
             'scrum_id': values['scrum_select-action']['selected_user'],
-            'days': [x['value'] for x in values['frequency_select-action']['selected_options']]
+            'days': [x['value'] for x in values['frequency_select-action']['selected_options']],
+            'blocker_count': 0
         }
     return {
         'channel_type': channel_type,
@@ -200,7 +201,8 @@ def save_to_db(payload: dict):
     }
 
 
-def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str = None):
+def post_updates_to_slack(channel_id: str, user: dict, scrum: dict, update: str, blocker: str = None,
+                          initial_blocker_count: int = 0):
     dt = datetime.now().strftime('%m/%d/%Y')
     message_blocks = [
         {
@@ -220,7 +222,41 @@ def post_updates_to_slack(channel_id: str, user: dict, update: str, blocker: str
                 }
             }
         )
+        blocker_count = initial_blocker_count + 1
+        DYNAMO_MAPPING_DB_Table.update_item(
+            Key={
+                'channel_id': channel_id
+            },
+            UpdateExpression='SET blocker_count = :val',
+            ExpressionAttributeValues={
+                ':val': blocker_count
+            }
+        )
+        if blocker_count >= 2:
+            channel_details = SLACK_CLIENT.conversations_info(channel=channel_id)
+            channel_name = channel_details['channel']['name']
+            scrums = [scrum, KARTIK_USER, ADARSH_USER]
+            for scrum_id in scrums:
+                send_blocker_notification(scrum_id, channel_name, blocker)
+
+    else:
+        DYNAMO_MAPPING_DB_Table.update_item(
+            Key={
+                'channel_id': channel_id
+            },
+            UpdateExpression='SET blocker_count = :val',
+            ExpressionAttributeValues={
+                ':val': 0
+            }
+        )
     return post_message_as_user(channel_id, message_blocks, user['id'])
+
+
+def send_blocker_notification(scrum_id, channel_name, blocker):
+    SLACK_CLIENT.chat_postMessage(
+        channel=scrum_id,
+        text=f"There's a blocker in project: *{channel_name}*\n*Blocker*:exclamation:\n{blocker}"
+    )
 
 
 def post_updates_to_log1(
@@ -316,19 +352,21 @@ def post_project_update(payload):
         }
     ).get('Item', {})
     print('details', details)
-    res = post_updates_to_log1(
-        project_id=details['project_id'],
-        update=update['update'],
-        sprint_start=date.today(),
-        sprint_end=date.today(),
-        blocker=update['blocker']
-    )
-    print('log1 response', res)
+    # res = post_updates_to_log1(
+    #     project_id=details['project_id'],
+    #     update=update['update'],
+    #     sprint_start=date.today(),
+    #     sprint_end=date.today(),
+    #     blocker=update['blocker']
+    # )
+    # print('log1 response', res)
     res = post_updates_to_slack(
         channel_id=payload['view']['blocks'][1]['text']['text'],
         user={'id': payload['user']['id'], 'username': payload['user']['username']},
+        scrum=details['scrum_id'],
         update=update['update'],
-        blocker=update['blocker']
+        blocker=update['blocker'],
+        initial_blocker_count=details['blocker_count']
     )
     print('slack response', res)
     return {
@@ -500,12 +538,19 @@ def initiate_project_update(payload):
             "statusCode": 204
         }
     else:
+        item = DYNAMO_MAPPING_DB_Table.get_item(
+            Key={
+                'channel_id': payload['view']['blocks'][1]['text']['text']
+            }
+        ).get('Item', {})
         print('posting update to slack')
         post_updates_to_slack(
             channel_id=channel_id,
             user={'id': payload['user']['id'], 'username': payload['user']['username']},
+            scrum=item['scrum_id'],
             update=details['update'],
-            blocker=details['blocker']
+            blocker=details['blocker'],
+            initial_blocker_count=item['blocker_count']
         )
         return {
             "statusCode": 204
