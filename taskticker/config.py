@@ -8,7 +8,8 @@ LOG1_URL = os.environ.get('LOG1_URL')
 ENV = os.environ.get('ENV', 'dev')
 ssm_client = boto3.client('ssm')
 DEFAULT_SNOOZE_DELAY = 60 * 60
-
+USER_KARTIK = 'U03KRQ8R7GA'
+USER_ADARSH = 'U03LRVDTS4C'
 
 def fetch_config() -> dict:
     try:
