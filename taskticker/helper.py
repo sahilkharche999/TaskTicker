@@ -6,7 +6,7 @@ import requests
 from slack_sdk.errors import SlackApiError
 
 from config import LOG1_URL, LOG1_API_KEY, SLACK_CLIENT, DYNAMO_MAPPING_DB_Table, ADMIN_USERS, DEFAULT_SNOOZE_DELAY, \
-    PROJECT_UPDATE_FUNCTION_NAME, KARTIK_USER, ADARSH_USER
+    PROJECT_UPDATE_FUNCTION_NAME, USER_ADARSH, USER_KARTIK
 from scheduler_worker import schedule_notification
 
 import boto3
@@ -235,7 +235,7 @@ def post_updates_to_slack(channel_id: str, user: dict, scrum: dict, update: str,
         if blocker_count >= 2:
             channel_details = SLACK_CLIENT.conversations_info(channel=channel_id)
             channel_name = channel_details['channel']['name']
-            scrums = [scrum, KARTIK_USER, ADARSH_USER]
+            scrums = [scrum, USER_ADARSH, USER_KARTIK]
             for scrum_id in scrums:
                 send_blocker_notification(scrum_id, channel_name, blocker)
 
@@ -352,14 +352,14 @@ def post_project_update(payload):
         }
     ).get('Item', {})
     print('details', details)
-    # res = post_updates_to_log1(
-    #     project_id=details['project_id'],
-    #     update=update['update'],
-    #     sprint_start=date.today(),
-    #     sprint_end=date.today(),
-    #     blocker=update['blocker']
-    # )
-    # print('log1 response', res)
+    res = post_updates_to_log1(
+        project_id=details['project_id'],
+        update=update['update'],
+        sprint_start=date.today(),
+        sprint_end=date.today(),
+        blocker=update['blocker']
+    )
+    print('log1 response', res)
     res = post_updates_to_slack(
         channel_id=payload['view']['blocks'][1]['text']['text'],
         user={'id': payload['user']['id'], 'username': payload['user']['username']},
